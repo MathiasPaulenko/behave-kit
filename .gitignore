@@ -17,3 +17,5 @@ venv/
 htmlcov/
 .coverage
 coverage.xml
+debug/
+behave_output.txt
