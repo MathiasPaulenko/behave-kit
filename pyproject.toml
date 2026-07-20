@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "behave-kit"
-version = "0.1.0"
+version = "1.0.0"
 description = "The Swiss-army knife for Behave — soft assertions, typed context, conditional skip, env management, fixtures and more."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -12,7 +12,7 @@ requires-python = ">=3.11"
 authors = [{ name = "Mathias Paulenko", email = "mathias.paulenko@gmail.com" }]
 keywords = ["behave", "bdd", "testing", "assertions", "fixtures", "context", "environment"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
