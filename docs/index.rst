@@ -5,23 +5,40 @@ The Swiss-army knife for `Behave <https://github.com/behave/behave>`_ — soft
 assertions, typed context, conditional skip, environment management, fixtures
 and more.
 
+behave-kit is a set of independent, opt-in utilities that make Behave test
+suites more robust, readable, and maintainable.  Each feature can be used
+standalone or wired automatically via :func:`behave_kit.setup`.
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents
+   :caption: Getting Started
 
    quickstart
-   api
    migration
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Features
 
-Overview
---------
+   soft_assertions
+   typed_context
+   conditional_skip
+   environment_variables
+   data_loading
+   fixtures
+   context_utilities
+   step_utilities
+   hooks
 
-behave-kit is a set of independent utilities that make Behave test suites more
-robust, readable, and maintainable.  Each feature can be used standalone or
-wired automatically via :func:`behave_kit.setup`.
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference
 
-Features at a glance:
+   api
+
+
+Features at a glance
+--------------------
 
 - **Soft assertions** — collect multiple failures, report them all at once
 - **TypedContext** — schema-validated proxy over the Behave context
@@ -33,6 +50,45 @@ Features at a glance:
 - **Step suggestions** — "did you mean?" hints for undefined steps
 - **Scoped attributes** — automatic cleanup of context attributes per scenario
 - **Conditional steps** — ``@when_if`` runs a step only when a condition holds
+- **Custom parameter types** — register converters for step parameters
+- **Automatic wiring** — ``setup()`` / ``teardown()`` for zero-config adoption
+
+Three adoption levels
+---------------------
+
+**Level 1 — Automatic wiring:**
+
+.. code-block:: python
+
+   from behave_kit import setup, teardown
+
+   def before_all(context):
+       setup(context, env="staging")
+
+   def after_scenario(context, scenario):
+       teardown(context)
+
+**Level 2 — Cherry-pick:**
+
+.. code-block:: python
+
+   from behave_kit import assert_soft, env, load_data
+
+   @then("the response should be valid")
+   def step(context):
+       assert_soft(context.response.status_code == 200)
+       api_key = env("API_KEY", required=True)
+       users = load_data("tests/data/users.csv")
+
+**Level 3 — Namespace:**
+
+.. code-block:: python
+
+   import behave_kit as bk
+
+   @then("the response should be valid")
+   def step(context):
+       bk.assert_soft(context.response.status_code == 200)
 
 Installation
 ------------
