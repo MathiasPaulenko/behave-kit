@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 
+from behave_kit._core.errors import BehaveKitError
 from behave_kit._core.logging import get_logger
 from behave_kit._core.types import Context
 
@@ -27,6 +28,17 @@ logger = get_logger("hooks")
 _WIRED_KEY = "_behave_kit_wired"
 _FIXTURES_KEY = "_behave_kit_fixtures"
 _SUGGESTIONS_KEY = "_behave_kit_suggestions"
+
+
+def _validate_log_level(level: str) -> None:
+    try:
+        logging.getLogger().setLevel(level)
+    except (TypeError, ValueError) as exc:
+        raise BehaveKitError(
+            f"Invalid log_level '{level}'",
+            cause=exc,
+            suggestion="Use a logging level name such as DEBUG, INFO, WARNING, ERROR, or CRITICAL",
+        ) from exc
 
 
 def _wire_env_config(context: Context, env: str, config_file: str) -> None:
@@ -71,6 +83,7 @@ def setup(
     Idempotent: calling twice is a no-op.  Each module is wired independently
     in try/except — a failure in one does not prevent the others.
     """
+    _validate_log_level(log_level)
     logging.getLogger("behave_kit").setLevel(log_level)
     if hasattr(context, _WIRED_KEY):
         return
@@ -124,12 +137,17 @@ def _cleanup_scoped(context: Context) -> None:
 
 
 def _report_soft_asserts(context: Context) -> None:
+    from behave_kit.assertions.soft import use_soft_asserts
+
     collector = getattr(context, "_behave_kit_soft", None)
     if collector is not None:
         report = collector.report()
         if report.failures:
             logger.error("Soft assertion failures:\n%s", report)
-        collector.raise_if_failed()
+        try:
+            collector.raise_if_failed()
+        finally:
+            use_soft_asserts(context)
 
 
 def _dump_if_failed(context: Context) -> None:
@@ -151,7 +169,7 @@ def teardown(context: Context) -> None:
     if "fixtures" in wired:
         _teardown_fixtures(context)
     _cleanup_scoped(context)
-    if "soft" in wired:
-        _report_soft_asserts(context)
     if "dump" in wired:
         _dump_if_failed(context)
+    if "soft" in wired:
+        _report_soft_asserts(context)

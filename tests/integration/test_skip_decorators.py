@@ -101,3 +101,28 @@ def test_functools_wraps_preserves_metadata() -> None:
 
     assert my_named_step.__name__ == "my_named_step"
     assert my_named_step.__doc__ == "My docstring."
+
+
+def test_skip_if_no_browser_can_be_called_with_parens() -> None:
+    context = SimpleNamespace()
+
+    @skip_if_no_browser()
+    def step(context: SimpleNamespace) -> str:
+        return "executed"
+
+    try:
+        result = step(context)
+    except unittest.SkipTest:
+        pass
+    else:
+        assert result == "executed"
+
+
+def test_skip_on_os_rejects_non_string_argument() -> None:
+    from behave_kit._core.errors import BehaveKitError
+
+    with pytest.raises(BehaveKitError, match="must be a string"):
+
+        @skip_on_os(123)
+        def step(context: SimpleNamespace) -> str:
+            return "executed"

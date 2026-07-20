@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from behave_kit.context.dump import dump_context, dump_context_on_failure
 
 
@@ -62,3 +64,22 @@ def test_dump_context_merges_behave_style_stack_layers(tmp_path: Path) -> None:
     assert data["user"] == "override"
     assert data["base_url"] == "https://x.com"
     assert "@layer" not in data
+
+
+def test_dump_context_tolerates_non_string_attribute_names(tmp_path: Path) -> None:
+    context = SimpleNamespace(user="alice")
+    context.__dict__[1] = "value"
+    output_file = dump_context(context, path=tmp_path)
+    data = json.loads(output_file.read_text(encoding="utf-8"))
+    assert data["user"] == "alice"
+    assert "1" not in data
+
+
+def test_dump_context_rejects_existing_non_directory_path(tmp_path: Path) -> None:
+    from behave_kit._core.errors import BehaveKitError
+
+    context = SimpleNamespace(user="alice")
+    file_path = tmp_path / "not_a_dir.json"
+    file_path.write_text("{}", encoding="utf-8")
+    with pytest.raises(BehaveKitError, match="not a directory"):
+        dump_context(context, path=file_path)

@@ -60,3 +60,23 @@ def test_assert_table_equals_fails_for_differing_tables() -> None:
     expected = SimpleNamespace(headings=["a", "b"], rows=[["1", "9"]])
     with pytest.raises(AssertionError):
         assert_table_equals(actual, expected)
+
+
+def test_assert_dict_contains_works_with_array_like_values() -> None:
+    try:
+        import numpy as np  # type: ignore[import-not-found]
+    except ImportError:
+        pytest.skip("numpy not installed")
+    assert_dict_contains({"a": np.array([1, 2])}, {"a": np.array([1, 2])})
+
+
+def test_assert_table_equals_ragged_rows_raise_assertion() -> None:
+    actual = SimpleNamespace(headings=["a", "b"], rows=[["1"]])
+    expected = SimpleNamespace(headings=["a", "b"], rows=[["1", "2"]])
+    with pytest.raises(AssertionError):
+        assert_table_equals(actual, expected)
+
+
+def test_assert_list_ordered_uncomparable_elements_raise_assertion() -> None:
+    with pytest.raises(AssertionError):
+        assert_list_ordered([1, None, 2])

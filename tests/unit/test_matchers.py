@@ -1,6 +1,6 @@
 """Tests for behave_kit.assertions._matchers."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from behave_kit.assertions._matchers import CompareOptions, deep_compare
 
@@ -136,3 +136,49 @@ def test_custom_matcher_reports_failure() -> None:
     options = CompareOptions(custom_matchers={Money: lambda a, b: a.cents == b.cents})
     result = deep_compare(Money(50), Money(100), options)
     assert not result.equal
+
+
+def test_bool_is_not_int() -> None:
+    assert not deep_compare(True, 1).equal
+    assert not deep_compare(False, 0).equal
+    assert not deep_compare(1, True).equal
+
+
+def test_nan_is_not_equal() -> None:
+    assert not deep_compare(float("nan"), 1.0).equal
+    assert not deep_compare(float("nan"), float("nan")).equal
+
+
+def test_mixed_aware_naive_datetime_reports_diff() -> None:
+    options = CompareOptions(datetime_tolerance=timedelta(seconds=5))
+    result = deep_compare(datetime.now(UTC), datetime.now(), options)
+    assert not result.equal
+
+
+def test_self_referential_lists_do_not_recurse_forever() -> None:
+    a = [1]
+    a.append(a)
+    result = deep_compare(a, a)
+    assert result.equal
+
+
+def test_custom_matcher_matches_subclass() -> None:
+    class Money:
+        def __init__(self, cents: int) -> None:
+            self.cents = cents
+
+    class SpecialMoney(Money):
+        pass
+
+    options = CompareOptions(custom_matchers={Money: lambda a, b: a.cents == b.cents})
+    result = deep_compare(SpecialMoney(100), SpecialMoney(100), options)
+    assert result.equal
+
+
+def test_ignore_order_reports_nested_diff_path() -> None:
+    options = CompareOptions(ignore_order=True)
+    actual = [{"id": 1, "name": "Alice"}]
+    expected = [{"id": 1, "name": "Bob"}]
+    result = deep_compare(actual, expected, options)
+    assert not result.equal
+    assert result.diffs[0].path == "0.name"

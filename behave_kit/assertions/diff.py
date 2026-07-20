@@ -15,6 +15,25 @@ class _TableLike(Protocol):
     rows: Sequence[Sequence[str]]
 
 
+def _safe_equal(actual: object, expected: object) -> bool:
+    """Compare two values, tolerating array-like objects that do not return a scalar bool."""
+    try:
+        result = actual == expected
+    except Exception:
+        return False
+    if isinstance(result, bool):
+        return result
+    try:
+        return bool(result.all())
+    except (AttributeError, ValueError, TypeError):
+        pass
+    try:
+        return bool(result)
+    except (ValueError, TypeError):
+        pass
+    return False
+
+
 def _format_diff_result(result: DiffResult, msg: str) -> str:
     lines = [msg] if msg else []
     lines.append(f"Found {len(result.diffs)} difference(s):")
@@ -43,9 +62,14 @@ def assert_dict_contains(
     msg: str = "",
 ) -> None:
     """Assert that ``d`` contains every key/value pair present in ``subset``."""
+    if not isinstance(d, Mapping) or not isinstance(subset, Mapping):
+        types = f"{type(d).__name__} and {type(subset).__name__}"
+        raise AssertionError(f"assert_dict_contains requires two mappings, got {types}")
     missing_keys = set(subset) - set(d)
     mismatched = {
-        key: (subset[key], d[key]) for key in subset if key in d and d[key] != subset[key]
+        key: (subset[key], d[key])
+        for key in subset
+        if key in d and not _safe_equal(d[key], subset[key])
     }
     if not missing_keys and not mismatched:
         return
@@ -69,17 +93,30 @@ def assert_list_ordered(
     """Assert that ``lst`` is sorted, optionally by a ``key`` function."""
     key_fn = key or (lambda item: item)
     values = [key_fn(item) for item in lst]
-    if values != sorted(values):
+    try:
+        ordered = values == sorted(values)
+    except TypeError as exc:
+        raise AssertionError(msg or f"List elements are not comparable: {values!r}") from exc
+    if not ordered:
         raise AssertionError(msg or f"List is not ordered: {values!r}")
 
 
 def _table_to_rows(table: _TableLike) -> list[dict[str, str]]:
     headings = list(table.headings)
-    return [dict(zip(headings, list(row), strict=True)) for row in table.rows]
+    rows: list[dict[str, str]] = []
+    for row in table.rows:
+        try:
+            rows.append(dict(zip(headings, list(row), strict=True)))
+        except (ValueError, TypeError) as exc:
+            raise AssertionError(f"Table row {row!r} does not match headings {headings!r}") from exc
+    return rows
 
 
 def assert_table_equals(actual: _TableLike, expected: _TableLike, *, msg: str = "") -> None:
     """Assert that two Behave Data Tables have the same headings and rows."""
-    result = deep_compare(_table_to_rows(actual), _table_to_rows(expected))
+    try:
+        result = deep_compare(_table_to_rows(actual), _table_to_rows(expected))
+    except (ValueError, TypeError) as exc:
+        raise AssertionError(f"Tables have incompatible shape: {exc}") from exc
     if not result.equal:
         raise AssertionError(_format_diff_result(result, msg))

@@ -56,7 +56,7 @@ Skip a step on specific operating systems:
        ...
 
 skip_if_missing
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 Skip a step when a Python module is not installed:
 
@@ -112,9 +112,9 @@ The condition functions used by the decorators are also available standalone:
 
 .. autofunction:: behave_kit.skip.conditions.is_os
 
-.. autofunction:: behave_kit.skip.conditions.has_module
+.. autofunction:: behave_kit.skip.conditions.is_missing
 
-.. autofunction:: behave_kit.skip.conditions.has_browser
+.. autofunction:: behave_kit.skip.conditions.is_no_browser
 
 Examples
 --------

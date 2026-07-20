@@ -42,6 +42,23 @@ class Registry(Generic[T]):
         Raises:
             FixtureError: if ``name`` is already registered.
         """
+        if not isinstance(name, str):
+            raise FixtureError(
+                f"Registry name must be a string, got {type(name).__name__}",
+                suggestion="Use a string identifier",
+            )
+        if not isinstance(scope, Scope):
+            raise FixtureError(
+                f"Registry scope must be a Scope value, got {scope!r}",
+                suggestion="Use Scope.SCENARIO, Scope.FEATURE, or Scope.GLOBAL",
+            )
+        if requires is not None and not (
+            isinstance(requires, list) and all(isinstance(dep, str) for dep in requires)
+        ):
+            raise FixtureError(
+                "Registry requires must be a list of strings",
+                suggestion="Pass a list of dependency names",
+            )
         if name in self._entries:
             raise FixtureError(
                 f"'{name}' is already registered",

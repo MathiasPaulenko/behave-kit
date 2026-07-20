@@ -51,9 +51,10 @@ def scoped(
     ) -> Callable[Concatenate[Context, P], R]:
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
-            result = func(context, *args, **kwargs)
-            _track(context, name, scope)
-            return result
+            try:
+                return func(context, *args, **kwargs)
+            finally:
+                _track(context, name, scope)
 
         return cast("Callable[Concatenate[Context, P], R]", wrapper)
 

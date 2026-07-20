@@ -61,3 +61,17 @@ def test_env_default_used_when_missing() -> None:
 def test_env_default_not_used_when_present(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("BK_TEST_VAR", "actual")
     assert env("BK_TEST_VAR", default="fallback") == "actual"
+
+
+def test_env_converts_float(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BK_TEST_VAR", "3.14")
+    assert env("BK_TEST_VAR", var_type=float) == 3.14
+
+
+def test_env_converts_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert env("BK_TEST_VAR", var_type=int, default="30") == 30
+
+
+def test_env_rejects_bool_as_int() -> None:
+    with pytest.raises(EnvVarError):
+        env("BK_TEST_VAR", var_type=int, default="true")

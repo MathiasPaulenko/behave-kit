@@ -1,78 +1,130 @@
-"""Immutable, resolved configuration loaded from `behave.toml`.
+"""Project-wide configuration object loaded from ``behave.toml``.
 
-`behave.toml` groups settings by environment under `[env.<name>]` sections.
-An optional `[env.default]` section provides values shared by all
-environments; per-environment sections override it. CLI `--set key=value`
-overrides are applied last.
+`KitConfig` exposes the subset of fields behave-kit cares about, while
+``raw`` preserves the full merged profile for custom tooling.
 """
 
 from __future__ import annotations
 
 import tomllib
+import types
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from behave_kit._core.errors import ConfigError
+from behave_kit.env.profiles import apply_overrides, select_profile
 
 
 @dataclass(frozen=True)
 class KitConfig:
-    """Resolved, immutable configuration for a single environment."""
+    """Read-only, deeply immutable resolved configuration."""
 
     env: str
     base_url: str = ""
     browser: str = ""
-    timeouts: dict[str, int] = field(default_factory=dict)
-    credentials: dict[str, str] = field(default_factory=dict)
-    raw: dict[str, Any] = field(default_factory=dict)
+    timeouts: Mapping[str, int] = field(
+        default_factory=lambda: types.MappingProxyType({}),
+    )
+    credentials: Mapping[str, str] = field(
+        default_factory=lambda: types.MappingProxyType({}),
+    )
+    raw: Mapping[str, Any] = field(
+        default_factory=lambda: types.MappingProxyType({}),
+    )
 
     @classmethod
     def from_toml(
         cls,
-        path: Path,
-        env: str,
+        path: str | Path,
+        *,
+        env: str | None = None,
         overrides: dict[str, str] | None = None,
     ) -> KitConfig:
-        """Load ``path``, select the ``[env.<env>]`` profile and apply overrides.
+        """Load a ``KitConfig`` from a TOML file.
+
+        ``env`` defaults to ``behave_kit.env`` if omitted. CLI ``--set``
+        overrides are dotted keys flattened to top-level strings.
 
         Raises:
-            ConfigError: if the file cannot be parsed, or the profile is missing.
+            ConfigError: if the file is missing, unreadable, malformed, or
+                the requested profile does not exist.
         """
+        file_path = Path(path)
         try:
-            with path.open("rb") as f:
+            if not file_path.is_file():
+                raise ConfigError(
+                    f"Configuration file not found or is not a file: {file_path}",
+                    suggestion="Create a behave.toml at the project root",
+                )
+            with file_path.open("rb") as f:
                 data = tomllib.load(f)
         except FileNotFoundError as exc:
             raise ConfigError(
-                f"Config file not found: {path}",
+                f"Configuration file not found: {file_path}",
                 cause=exc,
-                suggestion=f"Create {path} or pass a different config_file path",
+                suggestion="Create a behave.toml at the project root",
             ) from exc
         except tomllib.TOMLDecodeError as exc:
             raise ConfigError(
-                f"Invalid TOML in {path}: {exc}",
+                f"Invalid TOML in {file_path}: {exc}",
                 cause=exc,
-                suggestion="Check the file for syntax errors",
+                suggestion="Fix the syntax error shown above",
+            ) from exc
+        except OSError as exc:
+            raise ConfigError(
+                f"Cannot read configuration file {file_path}: {exc}",
+                cause=exc,
+                suggestion="Check the path and file permissions",
             ) from exc
 
-        environments = data.get("env", {})
-        default_section = environments.get("default", {})
-        profile = environments.get(env)
-        if profile is None:
+        env_name = env or data.get("behave_kit", {}).get("env", "default")
+        if not isinstance(env_name, str):
             raise ConfigError(
-                f"Environment profile 'env.{env}' not found in {path}",
-                suggestion=f"Available profiles: {', '.join(sorted(environments)) or '(none)'}",
+                f"'behave_kit.env' must be a string, got {type(env_name).__name__}",
+                suggestion="Set behave_kit.env to a profile name",
             )
 
-        resolved: dict[str, Any] = {**default_section, **profile}
-        for key, value in (overrides or {}).items():
-            resolved[key] = value
+        try:
+            resolved = select_profile(data, env_name)
+        except ConfigError:
+            raise
+        except Exception as exc:
+            raise ConfigError(
+                f"Cannot resolve profile '{env_name}' from {file_path}: {exc}",
+                cause=exc,
+                suggestion="Check the [env] table structure",
+            ) from exc
+
+        resolved = apply_overrides(resolved, overrides or {})
+
+        timeouts_value = resolved.get("timeouts", {})
+        if not isinstance(timeouts_value, Mapping):
+            raise ConfigError(
+                f"'timeouts' must be a table, got {type(timeouts_value).__name__}",
+                suggestion="Use [timeouts] in behave.toml or pass a valid override",
+            )
+        credentials_value = resolved.get("credentials", {})
+        if not isinstance(credentials_value, Mapping):
+            raise ConfigError(
+                f"'credentials' must be a table, got {type(credentials_value).__name__}",
+                suggestion="Use [credentials] in behave.toml or pass a valid override",
+            )
 
         return cls(
-            env=env,
-            base_url=str(resolved.get("base_url", "")),
-            browser=str(resolved.get("browser", "")),
-            timeouts=dict(resolved.get("timeouts", {})),
-            credentials=dict(resolved.get("credentials", {})),
-            raw=resolved,
+            env=env_name,
+            base_url=resolved.get("base_url", ""),
+            browser=resolved.get("browser", ""),
+            timeouts=types.MappingProxyType(
+                {key: int(value) for key, value in timeouts_value.items()}
+            ),
+            credentials=types.MappingProxyType(
+                {str(key): str(value) for key, value in credentials_value.items()}
+            ),
+            raw=types.MappingProxyType(resolved),
         )
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Return the raw configuration value for ``key`` or ``default``."""
+        return self.raw.get(key, default)

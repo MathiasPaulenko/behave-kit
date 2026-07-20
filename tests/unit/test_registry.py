@@ -82,3 +82,21 @@ def test_resolve_dependencies_diamond() -> None:
     assert order.index("left") < order.index("top")
     assert order.index("right") < order.index("top")
     assert order[-1] == "top"
+
+
+def test_register_rejects_invalid_name() -> None:
+    registry: Registry[str] = Registry()
+    with pytest.raises(FixtureError, match="name must be a string"):
+        registry.register(123, "value")
+
+
+def test_register_rejects_invalid_scope() -> None:
+    registry: Registry[str] = Registry()
+    with pytest.raises(FixtureError, match="scope must be a Scope"):
+        registry.register("x", "value", scope="scenario")
+
+
+def test_register_rejects_string_requires() -> None:
+    registry: Registry[str] = Registry()
+    with pytest.raises(FixtureError, match="requires must be a list"):
+        registry.register("x", "value", requires="y")

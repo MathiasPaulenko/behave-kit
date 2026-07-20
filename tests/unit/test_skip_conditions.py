@@ -42,3 +42,12 @@ def test_is_missing_true_for_nonexistent_module() -> None:
 def test_is_no_browser_reflects_selenium_availability() -> None:
     result = is_no_browser()
     assert isinstance(result, bool)
+
+
+def test_is_os_with_invalid_input_returns_false() -> None:
+    assert is_os(123) is False
+
+
+def test_is_missing_with_invalid_input_returns_true() -> None:
+    assert is_missing(123) is True
+    assert is_missing("") is True

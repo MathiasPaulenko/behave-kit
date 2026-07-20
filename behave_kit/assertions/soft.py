@@ -13,6 +13,7 @@ from collections.abc import Iterator
 
 from behave_kit._core.errors import BehaveKitError
 from behave_kit._core.types import Context
+from behave_kit.assertions.diff import _safe_equal
 from behave_kit.assertions.reporter import SoftAssertReport, SoftFailure
 
 
@@ -23,21 +24,23 @@ class SoftAssertCollector:
         self._failures: list[SoftFailure] = []
 
     def assert_soft(self, condition: bool, msg: str = "") -> None:
-        if not condition:
+        if not _as_bool(condition):
             self._failures.append(SoftFailure(message=msg or "condition was false"))
 
     def assert_soft_equals(self, actual: object, expected: object, msg: str = "") -> None:
-        if actual != expected:
+        if not _safe_equal(actual, expected):
             self._failures.append(
                 SoftFailure(message=msg or "values are not equal", expected=expected, actual=actual)
             )
 
-    def assert_soft_true(self, condition: bool, msg: str = "") -> None:
-        self.assert_soft(bool(condition), msg or "expected a truthy value")
+    def assert_soft_true(self, condition: object, msg: str = "") -> None:
+        self.assert_soft(_as_bool(condition), msg or "expected a truthy value")
 
     def assert_soft_is_none(self, value: object, msg: str = "") -> None:
         if value is not None:
-            self._failures.append(SoftFailure(message=msg or "expected None", actual=value))
+            self._failures.append(
+                SoftFailure(message=msg or "expected None", expected=None, actual=value)
+            )
 
     @property
     def failures(self) -> list[SoftFailure]:
@@ -50,8 +53,25 @@ class SoftAssertCollector:
         if self._failures:
             raise AssertionError(str(self.report()))
 
+    def clear(self) -> None:
+        """Remove every recorded failure."""
+        self._failures.clear()
 
-_collector_var: contextvars.ContextVar[SoftAssertCollector] = contextvars.ContextVar(
+
+def _as_bool(value: object) -> bool:
+    """Return a scalar bool, tolerating array-like objects."""
+    try:
+        return bool(value)
+    except (ValueError, TypeError):
+        pass
+    try:
+        return bool(value.all())  # type: ignore[attr-defined]
+    except (AttributeError, ValueError, TypeError):
+        pass
+    return False
+
+
+_collector_var: contextvars.ContextVar[SoftAssertCollector | None] = contextvars.ContextVar(
     "behave_kit_soft_collector"
 )
 
@@ -94,7 +114,7 @@ def assert_soft_equals(actual: object, expected: object, msg: str = "") -> None:
     _active_collector().assert_soft_equals(actual, expected, msg)
 
 
-def assert_soft_true(condition: bool, msg: str = "") -> None:
+def assert_soft_true(condition: object, msg: str = "") -> None:
     """Record a soft assertion failure if ``condition`` is not truthy."""
     _active_collector().assert_soft_true(condition, msg)
 

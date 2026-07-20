@@ -99,11 +99,14 @@ def test_all_is_complete() -> None:
         "assert_table_equals",
         "soft_asserts",
         "use_soft_asserts",
+        "CompareOptions",
+        "deep_compare",
         # context
         "TypedContext",
         "dump_context",
         "dump_context_on_failure",
         "scoped",
+        "cleanup_scoped",
         # skip
         "skip_if_env",
         "skip_on_os",
@@ -116,11 +119,17 @@ def test_all_is_complete() -> None:
         "load_data",
         "load_examples_from",
         "data_provider",
+        "get_provider",
+        "DataCache",
         # steps
         "parameter_type",
         "when_if",
+        "convert",
+        "register_builtin_types",
+        "setup_suggestions",
         # fixtures
         "fixture",
+        "Scope",
         # hooks
         "setup",
         "teardown",

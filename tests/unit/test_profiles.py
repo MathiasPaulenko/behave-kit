@@ -40,3 +40,19 @@ def test_apply_overrides_does_not_mutate_input() -> None:
     base = {"browser": "chrome"}
     apply_overrides(base, {"browser": "firefox"})
     assert base == {"browser": "chrome"}
+
+
+def test_select_profile_deep_merges_nested_tables() -> None:
+    data = {
+        "env": {
+            "default": {"timeouts": {"implicit": 5}},
+            "staging": {"timeouts": {"explicit": 30}},
+        }
+    }
+    profile = select_profile(data, "staging")
+    assert profile["timeouts"] == {"implicit": 5, "explicit": 30}
+
+
+def test_select_profile_rejects_non_mapping_env() -> None:
+    with pytest.raises(ConfigError, match="env.*table"):
+        select_profile({"env": "not-a-table"}, "staging")

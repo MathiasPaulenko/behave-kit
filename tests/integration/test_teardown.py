@@ -15,6 +15,12 @@ def test_teardown_without_setup_is_noop() -> None:
     teardown(context)
 
 
+def test_setup_validates_log_level() -> None:
+    context = SimpleNamespace()
+    with pytest.raises(Exception, match="Invalid log_level"):
+        setup(context, log_level="not-a-level")
+
+
 def test_teardown_only_wired_modules() -> None:
     context = SimpleNamespace()
     with mock.patch("behave_kit.hooks._wire_soft_asserts", side_effect=RuntimeError("boom")):
@@ -102,4 +108,4 @@ def test_teardown_order_fixtures_before_scoped() -> None:
         ),
     ):
         teardown(context)
-    assert call_order == ["fixtures", "scoped", "soft", "dump"]
+    assert call_order == ["fixtures", "scoped", "dump", "soft"]

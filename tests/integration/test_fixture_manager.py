@@ -157,3 +157,49 @@ def test_tag_without_matching_fixture_is_ignored() -> None:
     scenario = SimpleNamespace(tags=["non_fixture_tag"])
     manager.setup_for_scenario(context, scenario)
     manager.teardown_scenario(context)
+
+
+def test_scenario_setup_does_not_run_feature_scoped_fixture() -> None:
+    @fixture("feature_only_test", scope=Scope.FEATURE)
+    def feature_fixture(context: SimpleNamespace) -> tuple:
+        def setup(ctx: SimpleNamespace) -> None:
+            ctx.server = "running"
+
+        def teardown(ctx: SimpleNamespace) -> None:
+            pass
+
+        return setup, teardown
+
+    manager = FixtureManager()
+    context = SimpleNamespace()
+    scenario = SimpleNamespace(tags=["feature_only_test"])
+    manager.setup_for_scenario(context, scenario)
+    assert not hasattr(context, "server")
+
+
+def test_fixture_return_shape_is_validated() -> None:
+    @fixture("bad_shape_test")
+    def bad_fixture(context: SimpleNamespace) -> tuple:
+        return ("not-callable", "also-not-callable")
+
+    manager = FixtureManager()
+    context = SimpleNamespace()
+    scenario = SimpleNamespace(tags=["bad_shape_test"])
+    with pytest.raises(FixtureError, match="returned"):
+        manager.setup_for_scenario(context, scenario)
+
+
+def test_circular_dependency_is_reported() -> None:
+    @fixture("circular_a", requires="circular_b")
+    def circular_a(context: SimpleNamespace) -> None:
+        pass
+
+    @fixture("circular_b", requires="circular_a")
+    def circular_b(context: SimpleNamespace) -> None:
+        pass
+
+    manager = FixtureManager()
+    context = SimpleNamespace()
+    scenario = SimpleNamespace(tags=["circular_a"])
+    with pytest.raises(FixtureError, match="Circular"):
+        manager.setup_for_scenario(context, scenario)

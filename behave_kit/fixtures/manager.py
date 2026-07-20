@@ -16,7 +16,6 @@ Usage in ``environment.py``::
 from __future__ import annotations
 
 import difflib
-import re
 
 from behave_kit._core.errors import FixtureError
 from behave_kit._core.logging import get_logger
@@ -32,6 +31,16 @@ from behave_kit.fixtures.registry import (
 logger = get_logger("fixtures.manager")
 
 
+def _extract_quoted_name(message: str) -> str | None:
+    for char in ("'", '"'):
+        start = message.find(char)
+        if start != -1:
+            end = message.find(char, start + 1)
+            if end != -1:
+                return message[start + 1 : end]
+    return None
+
+
 class FixtureManager:
     """Orchestrates fixture setup/teardown lifecycle by scope."""
 
@@ -41,31 +50,43 @@ class FixtureManager:
 
     @staticmethod
     def _get_tags(obj: object) -> set[str]:
-        tags = getattr(obj, "tags", [])
+        tags = getattr(obj, "tags", None) or []
         return {str(tag) for tag in tags}
 
     def _run_fixture(self, name: str, context: Context) -> None:
         factory = get_fixture(name)
         result = factory(context)
-        if result is not None:
-            setup_fn, teardown_fn = result
-            setup_fn(context)
-            scope = fixture_scope(name)
-            if scope == Scope.SCENARIO:
-                self._scenario_teardowns.append((name, teardown_fn))
-            else:
-                self._feature_teardowns.append((name, teardown_fn))
+        if result is None:
+            return
+        if (
+            not isinstance(result, tuple)
+            or len(result) != 2
+            or not callable(result[0])
+            or not callable(result[1])
+        ):
+            raise FixtureError(
+                f"Fixture '{name}' returned {type(result).__name__}",
+                suggestion="Return None or (setup_fn, teardown_fn)",
+            )
+        setup_fn, teardown_fn = result
+        setup_fn(context)
+        scope = fixture_scope(name)
+        if scope == Scope.SCENARIO:
+            self._scenario_teardowns.append((name, teardown_fn))
+        else:
+            self._feature_teardowns.append((name, teardown_fn))
 
     def _setup_for_tags(self, context: Context, tags: set[str], scope: Scope) -> None:
-        available = set(fixture_names())
+        available = set(fixture_names(scope))
         matched = tags & available
         executed: set[str] = set()
         for tag in sorted(matched):
             try:
                 order = resolve_fixture_order(tag)
             except FixtureError as exc:
-                match = re.search(r"'([^']+)'", exc.message)
-                missing = match.group(1) if match else tag
+                if "Circular" in exc.message:
+                    raise
+                missing = _extract_quoted_name(exc.message) or tag
                 similar = difflib.get_close_matches(missing, fixture_names())
                 suggestion = f"Did you mean: {', '.join(similar)}" if similar else exc.suggestion
                 raise FixtureError(
@@ -73,7 +94,7 @@ class FixtureManager:
                     suggestion=suggestion,
                 ) from exc
             for dep_name in order:
-                if dep_name not in executed:
+                if dep_name not in executed and fixture_scope(dep_name) == scope:
                     self._run_fixture(dep_name, context)
                     executed.add(dep_name)
 

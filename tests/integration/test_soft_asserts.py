@@ -78,3 +78,28 @@ def test_collector_reset_between_soft_asserts_blocks() -> None:
         second.assert_soft(True)
     assert first.report().failure_count == 0
     assert second.report().failure_count == 0
+
+
+def test_assert_soft_tolerates_array_like_conditions() -> None:
+    try:
+        import numpy as np  # type: ignore[import-not-found]
+    except ImportError:
+        pytest.skip("numpy not installed")
+    with soft_asserts() as sa:
+        sa.assert_soft(np.array([True, True]))
+        sa.assert_soft_true(np.array([True, True]))
+        sa.assert_soft_equals(np.array([1, 2]), np.array([1, 2]))
+    assert sa.report().failure_count == 0
+
+
+def test_teardown_resets_soft_collector() -> None:
+    from behave_kit.hooks import setup, teardown
+
+    context = SimpleNamespace()
+    setup(context)
+    collector = context._behave_kit_soft
+    assert_soft(False, "failure")
+    with pytest.raises(AssertionError):
+        teardown(context)
+    assert context._behave_kit_soft is not collector
+    assert context._behave_kit_soft.report().failure_count == 0

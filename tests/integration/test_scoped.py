@@ -1,5 +1,6 @@
 """Integration tests for behave_kit.context.scoped."""
 
+import contextlib
 from types import SimpleNamespace
 
 from behave_kit._core.types import Scope
@@ -76,3 +77,18 @@ def test_cleanup_scoped_is_safe_when_attribute_already_removed() -> None:
     step(context)
     del context.driver
     cleanup_scoped(context, scope=Scope.SCENARIO)  # should not raise
+
+
+def test_scoped_tracks_attribute_when_step_raises() -> None:
+    context = SimpleNamespace()
+
+    @scoped("driver")
+    def step(context: SimpleNamespace) -> None:
+        context.driver = "chrome"
+        raise RuntimeError("boom")
+
+    with contextlib.suppress(RuntimeError):
+        step(context)
+    assert context.driver == "chrome"
+    cleanup_scoped(context, scope=Scope.SCENARIO)
+    assert not hasattr(context, "driver")

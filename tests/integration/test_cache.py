@@ -30,3 +30,11 @@ def test_invalidate_clears_only_matching_scope() -> None:
     cache.invalidate(Scope.SCENARIO)
     assert cache.get("users.csv", Scope.SCENARIO) is None
     assert cache.get("users.csv", Scope.FEATURE) == "feature-data"
+
+
+def test_cache_path_normalization_mixed_string_and_path() -> None:
+    from pathlib import Path
+
+    cache = DataCache()
+    cache.set(Path("a/b.csv"), Scope.SCENARIO, [1, 2, 3])
+    assert cache.get("a/b.csv", Scope.SCENARIO) == [1, 2, 3]

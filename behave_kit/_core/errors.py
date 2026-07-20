@@ -25,6 +25,8 @@ class BehaveKitError(Exception):
 
     def _format(self) -> str:
         msg = self.message
+        if self.cause is not None:
+            msg += f"\n  Cause: {self.cause}"
         if self.suggestion:
             msg += f"\n  Suggestion: {self.suggestion}"
         return msg
@@ -46,7 +48,7 @@ class DataLoadError(BehaveKitError):
     """Raised when test data cannot be loaded (missing file, bad format, missing dependency)."""
 
 
-class ScopeError(BehaveKitError):
+class ScopeError(BehaveKitError, AttributeError):
     """Raised when a `TypedContext` attribute is accessed or set without being declared."""
 
 

@@ -78,3 +78,33 @@ def test_register_builtin_types_is_idempotent() -> None:
     register_builtin_types()
     register_builtin_types()
     assert convert("int", "1") == 1
+
+
+def test_parameter_type_optional_pattern_is_stored() -> None:
+    from behave_kit.steps.parameters import get_parameter_type_pattern
+
+    @parameter_type("OptionalPatternUser")
+    def parse_user(value: str) -> str:
+        return value
+
+    assert get_parameter_type_pattern("OptionalPatternUser") == ""
+
+
+def test_parameter_type_pattern_is_stored_when_given() -> None:
+    from behave_kit.steps.parameters import get_parameter_type_pattern
+
+    @parameter_type("PatternUser", r"\w+@\w+\.\w+")
+    def parse_user(value: str) -> str:
+        return value
+
+    assert get_parameter_type_pattern("PatternUser") == r"\w+@\w+\.\w+"
+
+
+def test_convert_non_string_raises_step_error() -> None:
+    with pytest.raises(StepError, match="non-string"):
+        convert("int", 42)
+
+
+def test_convert_unregistered_type_raises_step_error() -> None:
+    with pytest.raises(StepError, match="not registered"):
+        convert("unknown_type", "value")

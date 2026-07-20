@@ -66,3 +66,20 @@ def test_config_is_immutable(toml_path: Path) -> None:
     config = KitConfig.from_toml(toml_path, env="production")
     with pytest.raises(AttributeError):
         config.browser = "edge"  # type: ignore[misc]
+    with pytest.raises(TypeError):
+        config.timeouts["implicit"] = 1  # type: ignore[index]
+
+
+def test_from_toml_deep_merges_nested_tables(toml_path: Path) -> None:
+    config = KitConfig.from_toml(toml_path, env="staging")
+    assert config.timeouts == {"implicit": 10, "explicit": 30}
+
+
+def test_from_toml_rejects_overriding_table_with_string(toml_path: Path) -> None:
+    with pytest.raises(ConfigError, match="timeouts.*table"):
+        KitConfig.from_toml(toml_path, env="staging", overrides={"timeouts": "10"})
+
+
+def test_from_toml_rejects_directory_path(tmp_path: Path) -> None:
+    with pytest.raises(ConfigError, match="not found or is not a file|not a file"):
+        KitConfig.from_toml(tmp_path, env="staging")

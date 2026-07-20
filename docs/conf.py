@@ -20,11 +20,11 @@ extensions = [
     "myst_parser",
 ]
 
-templates_path = ["_templates"]
+templates_path: list[str] = []
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 html_theme = "furo"
-html_static_path = ["_static"]
+html_static_path: list[str] = []
 
 autodoc_default_options = {
     "members": True,

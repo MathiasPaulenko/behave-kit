@@ -47,3 +47,14 @@ def test_subclasses_are_distinguishable() -> None:
         raise ConfigError("bad config")
     with pytest.raises(BehaveKitError):
         raise EnvVarError("missing var")
+
+
+def test_base_error_includes_cause_in_string() -> None:
+    original = ValueError("boom")
+    err = BehaveKitError("wrapped", cause=original)
+    assert "Cause: boom" in str(err)
+
+
+def test_scope_error_is_attribute_error_subclass() -> None:
+    err = ScopeError("not declared")
+    assert isinstance(err, AttributeError)

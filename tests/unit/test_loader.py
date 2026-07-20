@@ -45,3 +45,29 @@ def test_load_examples_from_normalizes_dict(tmp_path: Path) -> None:
     path = tmp_path / "config.json"
     path.write_text(json.dumps({"key": "value"}), encoding="utf-8")
     assert load_examples_from(path) == [{"key": "value"}]
+
+
+def test_load_data_wraps_json_decode_error(tmp_path: Path) -> None:
+    path = tmp_path / "bad.json"
+    path.write_text("{not json}", encoding="utf-8")
+    with pytest.raises(DataLoadError, match="Cannot parse JSON"):
+        load_data(path)
+
+
+def test_load_data_wraps_directory_path(tmp_path: Path) -> None:
+    with pytest.raises(DataLoadError, match="not found or is not a file"):
+        load_data(tmp_path)
+
+
+def test_load_examples_from_rejects_list_of_scalars(tmp_path: Path) -> None:
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps(["a", "b"]), encoding="utf-8")
+    with pytest.raises(DataLoadError, match="list of dicts"):
+        load_examples_from(path)
+
+
+def test_load_data_rejects_json_null(tmp_path: Path) -> None:
+    path = tmp_path / "null.json"
+    path.write_text("null", encoding="utf-8")
+    with pytest.raises(DataLoadError, match="null"):
+        load_data(path)

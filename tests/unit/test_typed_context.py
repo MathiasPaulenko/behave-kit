@@ -56,3 +56,31 @@ def test_dunder_attribute_access_raises_attribute_error_not_scope_error() -> Non
     typed = TypedContext(context, MySchema)
     with pytest.raises(AttributeError):
         typed.__wrapped__  # noqa: B018
+
+
+def test_inherited_annotations_are_visible() -> None:
+    class BaseSchema:
+        driver: object
+
+    class ChildSchema(BaseSchema):
+        pass
+
+    context = SimpleNamespace(driver="x")
+    typed = TypedContext(context, ChildSchema)
+    assert typed.driver == "x"
+
+
+def test_setattr_validates_declared_names() -> None:
+    context = SimpleNamespace()
+    typed = TypedContext(context, MySchema)
+    typed.driver = "x"
+    assert context.driver == "x"
+    with pytest.raises(ScopeError):
+        typed.unknown = "y"
+
+
+def test_setattr_enforces_simple_type_hints() -> None:
+    context = SimpleNamespace()
+    typed = TypedContext(context, MySchema)
+    with pytest.raises(ScopeError):
+        typed.base_url = 123

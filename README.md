@@ -233,7 +233,7 @@ Register custom Behave parameter types:
 ```python
 from behave_kit import parameter_type
 
-@parameter_type("User")
+@parameter_type("User", r"[\w.]+@[\w.]+\.[a-z]+")
 def parse_user(text):
     return User(name=text)
 ```

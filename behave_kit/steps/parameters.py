@@ -19,10 +19,12 @@ _EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _URL_PATTERN = re.compile(r"^https?://\S+$")
 
 _registry: Registry[Callable[[str], Any]] = Registry()
+_patterns: dict[str, str] = {}
 
 
 def parameter_type(
-    name: str, pattern: str
+    name: str,
+    pattern: str = "",
 ) -> Callable[[Callable[[str], Any]], Callable[[str], Any]]:
     """Register ``func`` as the converter for parameter type ``name``.
 
@@ -33,15 +35,44 @@ def parameter_type(
 
     def decorator(func: Callable[[str], Any]) -> Callable[[str], Any]:
         _registry.register(name, func)
+        _patterns[name] = pattern
         return func
 
     return decorator
 
 
+def get_parameter_type_pattern(name: str) -> str | None:
+    """Return the registered pattern for ``name``, or ``None`` if not registered."""
+    return _patterns.get(name)
+
+
 def convert(name: str, match_string: str) -> Any:
     """Apply the converter registered under ``name`` to ``match_string``."""
-    converter = _registry.get(name)
-    return converter(match_string)
+    if not isinstance(match_string, str):
+        raise StepError(
+            f"Cannot convert non-string value of type {type(match_string).__name__}",
+            suggestion="Pass a string to convert()",
+        )
+    try:
+        converter = _registry.get(name)
+    except Exception as exc:
+        raise StepError(
+            f"Parameter type '{name}' is not registered",
+            cause=exc,
+            suggestion=(
+                f"Use a registered type or register one with @parameter_type('{name}', pattern)"
+            ),
+        ) from exc
+    try:
+        return converter(match_string)
+    except StepError:
+        raise
+    except Exception as exc:
+        raise StepError(
+            f"Cannot convert '{match_string}' using '{name}'",
+            cause=exc,
+            suggestion="Check the input matches the expected format",
+        ) from exc
 
 
 def _to_int(value: str) -> int:

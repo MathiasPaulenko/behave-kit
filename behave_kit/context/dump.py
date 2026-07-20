@@ -12,11 +12,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from behave_kit._core.errors import BehaveKitError
 from behave_kit._core.logging import get_logger
 from behave_kit._core.types import Context
 
 logger = get_logger("context.dump")
-
 _SERIALIZABLE_SCALARS = (str, int, float, bool, type(None))
 
 
@@ -43,7 +43,7 @@ def _raw_attrs(context: Context) -> dict[str, Any]:
 def _serializable_attrs(context: Context) -> dict[str, Any]:
     attrs: dict[str, Any] = {}
     for name, value in _raw_attrs(context).items():
-        if name.startswith("_") or name.startswith("@"):
+        if not isinstance(name, str) or name.startswith("_") or name.startswith("@"):
             continue
         if _is_serializable(value):
             attrs[name] = value
@@ -69,7 +69,19 @@ def dump_context(context: Context, path: str | Path = "debug/") -> Path:
         The path of the written file.
     """
     output_dir = Path(path)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    if output_dir.exists() and not output_dir.is_dir():
+        raise BehaveKitError(
+            f"Output path '{output_dir}' exists and is not a directory",
+            suggestion="Provide a directory path for the debug dump",
+        )
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise BehaveKitError(
+            f"Cannot create output directory '{output_dir}': {exc}",
+            cause=exc,
+            suggestion="Check the path and permissions",
+        ) from exc
     attrs = _serializable_attrs(context)
     scenario = getattr(context, "scenario", None)
     scenario_name = getattr(scenario, "name", None) or "context"

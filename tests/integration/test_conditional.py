@@ -50,3 +50,29 @@ def test_functools_wraps_preserves_name_and_doc() -> None:
 
     assert my_named_step.__name__ == "my_named_step"
     assert my_named_step.__doc__ == "My docstring."
+
+
+def test_when_if_detects_missing_parentheses() -> None:
+    from behave_kit._core.errors import BehaveKitError
+
+    @when_if
+    def step(context: SimpleNamespace) -> str:
+        return "executed"
+
+    with pytest.raises(BehaveKitError, match="without parentheses"):
+        step(SimpleNamespace())
+
+
+def test_when_if_tolerates_array_like_condition() -> None:
+    try:
+        import numpy as np  # type: ignore[import-not-found]
+    except ImportError:
+        pytest.skip("numpy not installed")
+
+    context = SimpleNamespace(env="staging")
+
+    @when_if(lambda ctx: np.array([True, True]))
+    def step(context: SimpleNamespace) -> str:
+        return "executed"
+
+    assert step(context) == "executed"

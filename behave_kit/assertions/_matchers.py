@@ -6,6 +6,7 @@ No Behave dependency, no context, no I/O — fully unit-testable.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -49,7 +50,7 @@ def deep_compare(
     """Recursively compare ``actual`` to ``expected`` and report all differences."""
     options = options or CompareOptions()
     diffs: list[Diff] = []
-    _compare(actual, expected, "", options, diffs)
+    _compare(actual, expected, "", options, diffs, set())
     return DiffResult(equal=not diffs, diffs=diffs)
 
 
@@ -66,16 +67,39 @@ def _mismatch(path: str, expected: object, actual: object) -> Diff:
     )
 
 
+def _custom_matcher(
+    actual: object,
+    expected: object,
+    custom_matchers: dict[type, Callable[[Any, Any], bool]],
+) -> Callable[[Any, Any], bool] | None:
+    """Return the most specific custom matcher that accepts both values."""
+    candidates = [
+        cls for cls in custom_matchers if isinstance(actual, cls) and isinstance(expected, cls)
+    ]
+    if not candidates:
+        return None
+    for candidate in candidates:
+        if all(candidate is other or issubclass(candidate, other) for other in candidates):
+            return custom_matchers[candidate]
+    return custom_matchers[candidates[0]]
+
+
 def _compare(
     actual: object,
     expected: object,
     path: str,
     options: CompareOptions,
     diffs: list[Diff],
+    seen: set[tuple[int, int]],
 ) -> None:
-    matcher = options.custom_matchers.get(type(expected)) or options.custom_matchers.get(
-        type(actual)
-    )
+    if actual is expected:
+        return
+
+    pair = (id(actual), id(expected))
+    if pair in seen:
+        return
+
+    matcher = _custom_matcher(actual, expected, options.custom_matchers)
     if matcher is not None:
         if not matcher(actual, expected):
             diffs.append(
@@ -88,20 +112,14 @@ def _compare(
             )
         return
 
-    if isinstance(expected, Mapping) and isinstance(actual, Mapping):
-        _compare_mapping(actual, expected, path, options, diffs)
-        return
-    if isinstance(expected, (list, tuple)) and isinstance(actual, (list, tuple)):
-        _compare_sequence(actual, expected, path, options, diffs)
-        return
-    if isinstance(expected, set) and isinstance(actual, set):
-        _compare_set(actual, expected, path, diffs)
-        return
     if isinstance(expected, bool) or isinstance(actual, bool):
-        if actual != expected:
+        if type(actual) is not type(expected) or actual != expected:
             diffs.append(_mismatch(path, expected, actual))
         return
     if isinstance(expected, (int, float)) and isinstance(actual, (int, float)):
+        if math.isnan(actual) or math.isnan(expected):
+            diffs.append(_mismatch(path, expected, actual))
+            return
         if abs(float(actual) - float(expected)) > options.float_tolerance:
             diffs.append(_mismatch(path, expected, actual))
         return
@@ -110,8 +128,29 @@ def _compare(
         if tolerance is None:
             if actual != expected:
                 diffs.append(_mismatch(path, expected, actual))
-        elif abs(actual - expected) > tolerance:
-            diffs.append(_mismatch(path, expected, actual))
+        else:
+            try:
+                delta = abs(actual - expected)
+            except TypeError:
+                diffs.append(_mismatch(path, expected, actual))
+                return
+            if delta > tolerance:
+                diffs.append(_mismatch(path, expected, actual))
+        return
+
+    if isinstance(actual, (list, tuple, dict, set)) and isinstance(
+        expected, (list, tuple, dict, set)
+    ):
+        seen.add(pair)
+
+    if isinstance(expected, Mapping) and isinstance(actual, Mapping):
+        _compare_mapping(actual, expected, path, options, diffs, seen)
+        return
+    if isinstance(expected, (list, tuple)) and isinstance(actual, (list, tuple)):
+        _compare_sequence(actual, expected, path, options, diffs, seen)
+        return
+    if isinstance(expected, set) and isinstance(actual, set):
+        _compare_set(actual, expected, path, diffs)
         return
     if actual != expected:
         diffs.append(_mismatch(path, expected, actual))
@@ -123,6 +162,7 @@ def _compare_mapping(
     path: str,
     options: CompareOptions,
     diffs: list[Diff],
+    seen: set[tuple[int, int]],
 ) -> None:
     actual_keys = set(actual.keys()) - options.ignore_keys
     expected_keys = set(expected.keys()) - options.ignore_keys
@@ -145,7 +185,7 @@ def _compare_mapping(
             )
         )
     for key in sorted(actual_keys & expected_keys, key=str):
-        _compare(actual[key], expected[key], _join(path, key), options, diffs)
+        _compare(actual[key], expected[key], _join(path, key), options, diffs, seen)
 
 
 def _compare_sequence(
@@ -154,9 +194,10 @@ def _compare_sequence(
     path: str,
     options: CompareOptions,
     diffs: list[Diff],
+    seen: set[tuple[int, int]],
 ) -> None:
     if options.ignore_order:
-        _compare_sequence_unordered(actual, expected, path, options, diffs)
+        _compare_sequence_unordered(actual, expected, path, options, diffs, seen)
         return
     if len(actual) != len(expected):
         diffs.append(
@@ -170,7 +211,7 @@ def _compare_sequence(
     for index, expected_item in enumerate(expected):
         if index >= len(actual):
             break
-        _compare(actual[index], expected_item, f"{path}[{index}]", options, diffs)
+        _compare(actual[index], expected_item, f"{path}[{index}]", options, diffs, seen)
 
 
 def _compare_sequence_unordered(
@@ -179,28 +220,44 @@ def _compare_sequence_unordered(
     path: str,
     options: CompareOptions,
     diffs: list[Diff],
+    seen: set[tuple[int, int]],
 ) -> None:
     remaining = list(actual)
-    unmatched_expected = []
-    for expected_item in expected:
-        match_index: int | None = None
-        for index, actual_item in enumerate(remaining):
+    for index, expected_item in enumerate(expected):
+        item_path = _join(path, index)
+        best_index: int | None = None
+        best_probe: list[Diff] | None = None
+        for candidate_index, actual_item in enumerate(remaining):
             probe: list[Diff] = []
-            _compare(actual_item, expected_item, path, options, probe)
+            _compare(actual_item, expected_item, item_path, options, probe, seen)
             if not probe:
-                match_index = index
+                best_index = candidate_index
+                best_probe = probe
                 break
-        if match_index is not None:
-            remaining.pop(match_index)
+            if best_probe is None or len(probe) < len(best_probe):
+                best_index = candidate_index
+                best_probe = probe
+        if best_probe is not None and best_index is not None:
+            if best_probe:
+                diffs.extend(best_probe)
+            remaining.pop(best_index)
         else:
-            unmatched_expected.append(expected_item)
-    if unmatched_expected or remaining:
+            diffs.append(
+                Diff(
+                    path=item_path or "<root>",
+                    expected=expected_item,
+                    actual=None,
+                    message=f"no matching item for expected[{index}]",
+                )
+            )
+    for extra_index, extra_item in enumerate(remaining):
+        extra_path = _join(path, f"?{extra_index}")
         diffs.append(
             Diff(
-                path=path or "<root>",
-                expected=list(expected),
-                actual=list(actual),
-                message="sequences differ (order ignored)",
+                path=extra_path or "<root>",
+                expected=None,
+                actual=extra_item,
+                message=f"unexpected item {extra_item!r}",
             )
         )
 

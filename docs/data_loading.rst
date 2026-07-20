@@ -37,7 +37,7 @@ Loading CSV
 
 Given a file ``tests/data/users.csv``:
 
-.. code-block:: csv
+.. code-block:: text
 
    name,email,age
    Alice,alice@example.com,30
@@ -193,14 +193,14 @@ Error handling
 .. code-block:: python
 
    from behave_kit import load_data
-   from behave_kit._core.errors import DataError
+   from behave_kit._core.errors import DataLoadError
 
    try:
        data = load_data("tests/data/missing.csv")
-   except DataError as exc:
+   except DataLoadError as exc:
        print(f"Failed to load: {exc}")
 
    try:
        data = load_data("tests/data/broken.json")
-   except DataError as exc:
+   except DataLoadError as exc:
        print(f"Invalid JSON: {exc}")

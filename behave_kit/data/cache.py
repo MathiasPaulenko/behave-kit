@@ -11,6 +11,11 @@ from pathlib import Path
 from behave_kit._core.types import Scope
 
 
+def _normalize_path(path: str | Path) -> str:
+    """Return a forward-slash, normalized key regardless of input type."""
+    return Path(path).as_posix()
+
+
 class DataCache:
     """Cache of loaded data, keyed by ``(path, scope)``."""
 
@@ -18,10 +23,10 @@ class DataCache:
         self._entries: dict[tuple[str, Scope], object] = {}
 
     def get(self, path: str | Path, scope: Scope = Scope.SCENARIO) -> object | None:
-        return self._entries.get((str(path), scope))
+        return self._entries.get((_normalize_path(path), scope))
 
     def set(self, path: str | Path, scope: Scope, data: object) -> None:
-        self._entries[(str(path), scope)] = data
+        self._entries[(_normalize_path(path), scope)] = data
 
     def invalidate(self, scope: Scope) -> None:
         """Remove every entry cached at ``scope``."""
