@@ -1,0 +1,64 @@
+"""Integration tests for behave_kit.context.dump."""
+
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+from behave_kit.context.dump import dump_context, dump_context_on_failure
+
+
+def test_dump_context_writes_json(tmp_path: Path) -> None:
+    context = SimpleNamespace(user="alice", count=3, scenario=SimpleNamespace(name="login test"))
+    output_file = dump_context(context, path=tmp_path)
+    assert output_file.exists()
+    data = json.loads(output_file.read_text(encoding="utf-8"))
+    assert data["user"] == "alice"
+    assert data["count"] == 3
+
+
+def test_dump_context_skips_non_serializable_with_warning(tmp_path: Path) -> None:
+    class Unserializable:
+        pass
+
+    context = SimpleNamespace(user="alice", driver=Unserializable())
+    output_file = dump_context(context, path=tmp_path)
+    data = json.loads(output_file.read_text(encoding="utf-8"))
+    assert "user" in data
+    assert "driver" not in data
+
+
+def test_dump_context_creates_output_directory(tmp_path: Path) -> None:
+    target_dir = tmp_path / "nested" / "debug"
+    context = SimpleNamespace(user="alice")
+    dump_context(context, path=target_dir)
+    assert target_dir.exists()
+
+
+def test_dump_context_on_failure_dumps_when_failed(tmp_path: Path) -> None:
+    context = SimpleNamespace(user="alice")
+    scenario = SimpleNamespace(status="failed", name="failing scenario")
+    output_file = dump_context_on_failure(context, scenario, path=tmp_path)
+    assert output_file is not None
+    assert output_file.exists()
+
+
+def test_dump_context_on_failure_skips_when_passed(tmp_path: Path) -> None:
+    context = SimpleNamespace(user="alice")
+    scenario = SimpleNamespace(status="passed", name="passing scenario")
+    output_file = dump_context_on_failure(context, scenario, path=tmp_path)
+    assert output_file is None
+    assert not any(tmp_path.iterdir())
+
+
+def test_dump_context_merges_behave_style_stack_layers(tmp_path: Path) -> None:
+    context = SimpleNamespace(
+        _stack=[
+            {"user": "override", "@layer": "scenario"},
+            {"user": "base", "base_url": "https://x.com", "@layer": "feature"},
+        ]
+    )
+    output_file = dump_context(context, path=tmp_path)
+    data = json.loads(output_file.read_text(encoding="utf-8"))
+    assert data["user"] == "override"
+    assert data["base_url"] == "https://x.com"
+    assert "@layer" not in data
