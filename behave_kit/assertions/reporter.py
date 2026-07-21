@@ -17,6 +17,7 @@ class SoftFailure:
 
     @property
     def has_values(self) -> bool:
+        """Whether at least one of ``expected`` or ``actual`` was supplied."""
         return self.expected is not _UNSET or self.actual is not _UNSET
 
 
@@ -28,10 +29,12 @@ class SoftAssertReport:
 
     @property
     def failure_count(self) -> int:
+        """Number of recorded soft assertion failures."""
         return len(self.failures)
 
     @property
     def has_failures(self) -> bool:
+        """Whether any soft assertion failure has been recorded."""
         return bool(self.failures)
 
     def __str__(self) -> str:

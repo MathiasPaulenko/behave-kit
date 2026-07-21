@@ -34,6 +34,7 @@ def parameter_type(
     """
 
     def decorator(func: Callable[[str], Any]) -> Callable[[str], Any]:
+        """Register ``func`` as the converter for ``name``."""
         _registry.register(name, func)
         _patterns[name] = pattern
         return func

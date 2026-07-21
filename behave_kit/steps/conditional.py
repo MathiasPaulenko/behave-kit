@@ -30,6 +30,7 @@ def when_if(
     def decorator(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
+        """Wrap ``func`` to run only when ``condition`` is true."""
         if not callable(func):
             raise BehaveKitError(
                 "@when_if was applied without parentheses",
@@ -38,6 +39,7 @@ def when_if(
 
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
+            """Skip the step when ``condition(context)`` is false."""
             if not _as_bool(condition(context)):
                 raise unittest.SkipTest("Skipped: when_if condition was false")
             return func(context, *args, **kwargs)

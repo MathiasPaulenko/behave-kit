@@ -23,9 +23,22 @@ class DataCache:
         self._entries: dict[tuple[str, Scope], object] = {}
 
     def get(self, path: str | Path, scope: Scope = Scope.SCENARIO) -> object | None:
+        """Return the cached data for ``path`` at ``scope``, or ``None``.
+
+        Args:
+            path: File path or identifier used as the cache key.
+            scope: Scope whose cached value should be returned.
+        """
         return self._entries.get((_normalize_path(path), scope))
 
     def set(self, path: str | Path, scope: Scope, data: object) -> None:
+        """Store ``data`` for ``path`` under ``scope``.
+
+        Args:
+            path: File path or identifier used as the cache key.
+            scope: Scope at which the data should be cached.
+            data: Value to cache.
+        """
         self._entries[(_normalize_path(path), scope)] = data
 
     def invalidate(self, scope: Scope) -> None:

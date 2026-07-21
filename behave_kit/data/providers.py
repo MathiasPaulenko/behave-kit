@@ -18,6 +18,7 @@ def data_provider(name: str) -> Callable[[Callable[..., object]], Callable[..., 
     """Register ``func`` as the data provider named ``name``."""
 
     def decorator(func: Callable[..., object]) -> Callable[..., object]:
+        """Register ``func`` as the data provider named ``name``."""
         _registry.register(name, func)
         return func
 

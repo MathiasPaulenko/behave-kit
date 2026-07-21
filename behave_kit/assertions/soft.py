@@ -25,19 +25,44 @@ class SoftAssertCollector:
         self._failures: list[SoftFailure] = []
 
     def assert_soft(self, condition: bool, msg: str = "") -> None:
+        """Record a failure if ``condition`` is falsy.
+
+        Args:
+            condition: Boolean (or bool-coercible) value to check.
+            msg: Optional message describing the failure.
+        """
         if not _as_bool(condition):
             self._failures.append(SoftFailure(message=msg or "condition was false"))
 
     def assert_soft_equals(self, actual: object, expected: object, msg: str = "") -> None:
+        """Record a failure if ``actual`` is not equal to ``expected``.
+
+        Args:
+            actual: The value produced by the code under test.
+            expected: The value ``actual`` is expected to match.
+            msg: Optional override message for the failure.
+        """
         if not _safe_equal(actual, expected):
             self._failures.append(
                 SoftFailure(message=msg or "values are not equal", expected=expected, actual=actual)
             )
 
     def assert_soft_true(self, condition: object, msg: str = "") -> None:
+        """Record a failure if ``condition`` is not truthy.
+
+        Args:
+            condition: Value evaluated with scalar-bool coercion.
+            msg: Optional override message for the failure.
+        """
         self.assert_soft(_as_bool(condition), msg or "expected a truthy value")
 
     def assert_soft_is_none(self, value: object, msg: str = "") -> None:
+        """Record a failure if ``value`` is not ``None``.
+
+        Args:
+            value: The value to check.
+            msg: Optional override message for the failure.
+        """
         if value is not None:
             self._failures.append(
                 SoftFailure(message=msg or "expected None", expected=None, actual=value)
@@ -45,12 +70,15 @@ class SoftAssertCollector:
 
     @property
     def failures(self) -> list[SoftFailure]:
+        """Copy of the recorded soft assertion failures."""
         return list(self._failures)
 
     def report(self) -> SoftAssertReport:
+        """Return an immutable report of all recorded failures."""
         return SoftAssertReport(failures=list(self._failures))
 
     def raise_if_failed(self) -> None:
+        """Raise ``AssertionError`` if any failure has been recorded."""
         if self._failures:
             raise AssertionError(str(self.report()))
 

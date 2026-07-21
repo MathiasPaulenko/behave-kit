@@ -120,7 +120,9 @@ def env(
     var_type: type[T] = ...,
     default: Any = None,
     context: Context | None = None,
-) -> T: ...
+) -> T:
+    """Overload: ``required=True`` returns ``T`` (not optional)."""
+    ...
 
 
 @overload
@@ -131,7 +133,9 @@ def env(
     var_type: type[T] = ...,
     default: Any = None,
     context: Context | None = None,
-) -> T | None: ...
+) -> T | None:
+    """Overload: ``required=False`` may return ``None``."""
+    ...
 
 
 def env(

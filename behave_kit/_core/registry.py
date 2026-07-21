@@ -103,6 +103,11 @@ class Registry(Generic[T]):
         visited: set[str] = set()
 
         def visit(current: str) -> None:
+            """Recursively visit ``current`` and its dependencies.
+
+            Raises:
+                FixtureError: if ``current`` is missing or a cycle is detected.
+            """
             if current in visited:
                 return
             if current in visiting:

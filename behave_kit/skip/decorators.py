@@ -40,8 +40,10 @@ def skip_if_env(
     def decorator(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
+        """Wrap ``func`` to skip it on the configured environment."""
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
+            """Skip the step when the environment matches ``env_name``."""
             if is_env(context, env_name):
                 raise unittest.SkipTest(f"Skipped on env={env_name}")
             return func(context, *args, **kwargs)
@@ -60,8 +62,10 @@ def skip_on_os(
     def decorator(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
+        """Wrap ``func`` to skip it on the named operating system."""
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
+            """Skip the step when running on ``os_name``."""
             if is_os(os_name):
                 raise unittest.SkipTest(f"Skipped on os={os_name}")
             return func(context, *args, **kwargs)
@@ -80,8 +84,10 @@ def skip_if_missing(
     def decorator(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
+        """Wrap ``func`` to skip it when a dependency is missing."""
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
+            """Skip the step when ``module_name`` cannot be imported."""
             if is_missing(module_name):
                 raise unittest.SkipTest(f"Skipped: module '{module_name}' is not installed")
             return func(context, *args, **kwargs)
@@ -106,8 +112,10 @@ def skip_if_no_browser(
     def decorator(
         f: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
+        """Wrap ``f`` to skip it when Selenium is unavailable."""
         @functools.wraps(f)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
+            """Skip the step when Selenium is not installed."""
             if is_no_browser():
                 raise unittest.SkipTest("Skipped: selenium is not installed")
             return f(context, *args, **kwargs)

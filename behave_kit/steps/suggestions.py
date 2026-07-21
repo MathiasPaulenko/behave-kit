@@ -50,6 +50,7 @@ def setup_suggestions(context: Context) -> Callable[[Context, object], None]:
     """
 
     def after_step_hook(hook_context: Context, step: object) -> None:
+        """Suggest similar steps when ``step`` is reported as undefined."""
         status = getattr(step, "status", None)
         status_name = str(getattr(status, "name", status)).lower()
         if status_name == "undefined":

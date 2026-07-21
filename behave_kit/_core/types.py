@@ -34,27 +34,72 @@ class Scope(Enum):
 class DataLoader(Protocol):
     """Loads test data from a file into a Python object."""
 
-    def load(self, path: Path) -> object: ...
+    def load(self, path: Path) -> object:
+        """Load and return the data stored at ``path``.
+
+        Args:
+            path: Path to the data file.
+
+        Returns:
+            The loaded data as a Python object.
+        """
+        ...
 
 
 @runtime_checkable
 class SkipCondition(Protocol):
     """Decides whether a step or scenario should be skipped."""
 
-    def should_skip(self, context: Context) -> bool: ...
+    def should_skip(self, context: Context) -> bool:
+        """Return ``True`` if the step/scenario should be skipped.
+
+        Args:
+            context: Behave context for the current scenario.
+
+        Returns:
+            Whether the condition to skip is met.
+        """
+        ...
 
 
 @runtime_checkable
 class DiffMatcher(Protocol):
     """Compares two values of a specific type and reports differences."""
 
-    def matches(self, actual: object, expected: object) -> object: ...
+    def matches(self, actual: object, expected: object) -> object:
+        """Compare ``actual`` against ``expected`` and return a diff result.
+
+        Args:
+            actual: Value produced by the code under test.
+            expected: Expected value.
+
+        Returns:
+            An object describing the comparison (e.g. ``True`` if equal, or
+            a structured diff otherwise).
+        """
+        ...
 
 
 @runtime_checkable
 class FixtureFn(Protocol):
     """Sets up a resource for a scenario/feature and tears it down afterwards."""
 
-    def __call__(self, context: Context) -> object: ...
+    def __call__(self, context: Context) -> object:
+        """Create and return the fixture resource for ``context``.
 
-    def teardown(self, context: Context, resource: object) -> None: ...
+        Args:
+            context: Behave context for the current scenario.
+
+        Returns:
+            The resource managed by this fixture.
+        """
+        ...
+
+    def teardown(self, context: Context, resource: object) -> None:
+        """Clean up the ``resource`` produced by this fixture.
+
+        Args:
+            context: Behave context for the current scenario.
+            resource: Object returned by ``__call__``.
+        """
+        ...

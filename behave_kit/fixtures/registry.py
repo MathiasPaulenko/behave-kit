@@ -49,6 +49,7 @@ def fixture(
     """
 
     def decorator(func: FixtureFactory) -> FixtureFactory:
+        """Register ``func`` as the fixture named ``name``."""
         _registry.register(name, func, scope=scope, requires=_normalize_requires(requires))
         return func
 
