@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-07-21
+
+### Fixed
+
+- Release workflow trigger now correctly watches `master` instead of `main`.
+
+### Changed
+
+- Completed Google-style docstring coverage across the public API and test packages.
+
 ## [1.1.0] - 2026-07-21
 
 ### Added
