@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-21
+
+### Added
+
+- `wait_until` — polling utility with configurable timeout and interval for E2E/integration tests.
+- `assert_soft_raises` — soft assertion for expected exceptions, supporting single types and tuples.
+- `@data_driven` — decorator to run a step once per row from CSV, JSON, YAML, or Excel files.
+- `env_snapshot` — context manager to save and restore `os.environ` for test isolation.
+- `get_path` — dot-notation navigation for nested dicts and lists with optional defaults.
+- `@timed` / `assert_under` — time-based assertions for performance checks.
+- `temp_workspace` — context manager for isolated temporary directories with CWD restoration.
+- Sphinx documentation page for utilities (`docs/utilities.rst`).
+- README and Sphinx docs updated with all new features.
+
+### Fixed
+
+- `assert_soft_raises` no longer raises `AttributeError` when passed a tuple of exception types.
+- `assert_soft_raises` no longer catches `KeyboardInterrupt` or `SystemExit` (changed `except BaseException` to `except Exception`).
+- `assert_soft_raises` now validates empty exception tuples.
+- `@timed` now rejects negative `seconds` at decoration time.
+- `@data_driven` now raises `BehaveKitError` when the data file contains no rows.
+
 ## [1.1.1] - 2026-07-21
 
 ### Fixed

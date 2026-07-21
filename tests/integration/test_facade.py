@@ -93,6 +93,7 @@ def test_all_is_complete() -> None:
         "assert_soft_equals",
         "assert_soft_true",
         "assert_soft_is_none",
+        "assert_soft_raises",
         "assert_json_equals",
         "assert_dict_contains",
         "assert_list_ordered",
@@ -115,6 +116,7 @@ def test_all_is_complete() -> None:
         # env
         "env",
         "KitConfig",
+        "env_snapshot",
         # data
         "load_data",
         "load_examples_from",
@@ -127,12 +129,20 @@ def test_all_is_complete() -> None:
         "convert",
         "register_builtin_types",
         "setup_suggestions",
+        "data_driven",
         # fixtures
         "fixture",
         "Scope",
         # hooks
         "setup",
         "teardown",
+        # utilities
+        "wait_until",
+        "get_path",
+        "assert_under",
+        "timed",
+        "TimeoutExceededError",
+        "temp_workspace",
     }
     assert set(bk.__all__) == expected
 

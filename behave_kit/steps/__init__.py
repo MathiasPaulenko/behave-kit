@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from behave_kit.steps.conditional import when_if
+from behave_kit.steps.data_driven import data_driven
 from behave_kit.steps.parameters import convert, parameter_type, register_builtin_types
 from behave_kit.steps.suggestions import setup_suggestions, suggest_for_undefined
 
@@ -11,6 +12,7 @@ __all__ = [
     "convert",
     "register_builtin_types",
     "when_if",
+    "data_driven",
     "setup_suggestions",
     "suggest_for_undefined",
 ]

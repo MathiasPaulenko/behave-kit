@@ -69,6 +69,9 @@ Environment
 .. automodule:: behave_kit.env.profiles
    :members:
 
+.. automodule:: behave_kit.env.snapshot
+   :members:
+
 Data
 ~~~~
 
@@ -111,10 +114,28 @@ Steps
 .. automodule:: behave_kit.steps.parameters
    :members:
 
+.. automodule:: behave_kit.steps.data_driven
+   :members:
+
 Hooks
 ~~~~~
 
 .. automodule:: behave_kit.hooks
+   :members:
+
+Utilities
+~~~~~~~~~
+
+.. automodule:: behave_kit.wait
+   :members:
+
+.. automodule:: behave_kit.utils
+   :members:
+
+.. automodule:: behave_kit.timing
+   :members:
+
+.. automodule:: behave_kit.workspace
    :members:
 
 Core

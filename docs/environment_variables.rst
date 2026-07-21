@@ -141,6 +141,38 @@ Configuration files
 .. autoclass:: behave_kit._core.config.KitConfig
    :members:
 
+Environment variable snapshot
+------------------------------
+
+.. autofunction:: behave_kit.env.snapshot.env_snapshot
+
+The ``env_snapshot`` context manager saves the current state of
+``os.environ`` on entry and restores it on exit, including variables that
+were added or deleted inside the block.
+
+This is useful for tests that modify environment variables and need to
+ensure no state leaks between scenarios:
+
+.. code-block:: python
+
+   from behave_kit import env_snapshot
+
+   @when("I set a temporary env var")
+   def step(context):
+       with env_snapshot():
+           os.environ["TEMP_TOKEN"] = "abc123"
+           # ... test logic ...
+       # TEMP_TOKEN is gone and all other vars are restored
+
+Restoration also happens on exceptions:
+
+.. code-block:: python
+
+   with env_snapshot():
+       os.environ["API_KEY"] = "test"
+       raise RuntimeError("something went wrong")
+   # os.environ is fully restored even after the exception
+
 Profile selection
 ~~~~~~~~~~~~~~~~~
 

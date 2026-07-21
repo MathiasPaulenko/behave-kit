@@ -9,7 +9,7 @@ Three adoption levels:
 
 from __future__ import annotations
 
-__version__ = "1.0.0"
+__version__ = "1.2.0"
 
 from behave_kit._core.types import Scope
 from behave_kit.assertions import (
@@ -20,6 +20,7 @@ from behave_kit.assertions import (
     assert_soft,
     assert_soft_equals,
     assert_soft_is_none,
+    assert_soft_raises,
     assert_soft_true,
     assert_table_equals,
     deep_compare,
@@ -34,17 +35,22 @@ from behave_kit.context import (
     scoped,
 )
 from behave_kit.data import DataCache, data_provider, get_provider, load_data, load_examples_from
-from behave_kit.env import KitConfig, env
+from behave_kit.env import KitConfig, env, env_snapshot
 from behave_kit.fixtures import fixture
 from behave_kit.hooks import setup, teardown
 from behave_kit.skip import skip_if_env, skip_if_missing, skip_if_no_browser, skip_on_os
 from behave_kit.steps import (
     convert,
+    data_driven,
     parameter_type,
     register_builtin_types,
     setup_suggestions,
     when_if,
 )
+from behave_kit.timing import TimeoutExceededError, assert_under, timed
+from behave_kit.utils import get_path
+from behave_kit.wait import wait_until
+from behave_kit.workspace import temp_workspace
 
 __all__ = [
     "__version__",
@@ -53,6 +59,7 @@ __all__ = [
     "assert_soft_equals",
     "assert_soft_true",
     "assert_soft_is_none",
+    "assert_soft_raises",
     "assert_json_equals",
     "assert_dict_contains",
     "assert_list_ordered",
@@ -75,6 +82,7 @@ __all__ = [
     # env
     "env",
     "KitConfig",
+    "env_snapshot",
     # data
     "load_data",
     "load_examples_from",
@@ -87,10 +95,18 @@ __all__ = [
     "register_builtin_types",
     "setup_suggestions",
     "when_if",
+    "data_driven",
     # fixtures
     "fixture",
     "Scope",
     # hooks
     "setup",
     "teardown",
+    # utilities
+    "wait_until",
+    "get_path",
+    "assert_under",
+    "timed",
+    "TimeoutExceededError",
+    "temp_workspace",
 ]

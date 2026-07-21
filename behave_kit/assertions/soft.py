@@ -7,6 +7,7 @@ scenario (Behave hooks reset it before/after each scenario).
 
 from __future__ import annotations
 
+import collections.abc
 import contextlib
 import contextvars
 from collections.abc import Iterator
@@ -68,6 +69,49 @@ class SoftAssertCollector:
                 SoftFailure(message=msg or "expected None", expected=None, actual=value)
             )
 
+    def assert_soft_raises(
+        self,
+        expected_exception: type[BaseException] | tuple[type[BaseException], ...],
+        func: collections.abc.Callable[[], object],
+        msg: str = "",
+    ) -> None:
+        """Record a failure if ``func`` does not raise ``expected_exception``.
+
+        Args:
+            expected_exception: Exception type (or tuple of types) that
+                ``func`` is expected to raise.
+            func: Zero-argument callable to invoke.
+            msg: Optional override message for the failure.
+        """
+        expected_name = _exception_name(expected_exception)
+        if not expected_name:
+            raise BehaveKitError(
+                "expected_exception must not be empty",
+                suggestion="Provide at least one exception type",
+            )
+        try:
+            func()
+        except expected_exception:
+            return
+        except Exception as exc:
+            self._failures.append(
+                SoftFailure(
+                    message=msg
+                    or f"expected {expected_name}, "
+                    f"got {type(exc).__name__}",
+                    expected=expected_name,
+                    actual=type(exc).__name__,
+                )
+            )
+            return
+        self._failures.append(
+            SoftFailure(
+                message=msg or f"expected {expected_name}, no exception raised",
+                expected=expected_name,
+                actual="no exception",
+            )
+        )
+
     @property
     def failures(self) -> list[SoftFailure]:
         """Copy of the recorded soft assertion failures."""
@@ -85,6 +129,15 @@ class SoftAssertCollector:
     def clear(self) -> None:
         """Remove every recorded failure."""
         self._failures.clear()
+
+
+def _exception_name(
+    exc: type[BaseException] | tuple[type[BaseException], ...],
+) -> str:
+    """Return a readable name for an exception type or tuple of types."""
+    if isinstance(exc, tuple):
+        return " or ".join(e.__name__ for e in exc)
+    return exc.__name__
 
 
 _collector_var: contextvars.ContextVar[SoftAssertCollector | None] = contextvars.ContextVar(
@@ -138,6 +191,15 @@ def assert_soft_true(condition: object, msg: str = "") -> None:
 def assert_soft_is_none(value: object, msg: str = "") -> None:
     """Record a soft assertion failure if ``value`` is not None."""
     _active_collector().assert_soft_is_none(value, msg)
+
+
+def assert_soft_raises(
+    expected_exception: type[BaseException] | tuple[type[BaseException], ...],
+    func: collections.abc.Callable[[], object],
+    msg: str = "",
+) -> None:
+    """Record a soft assertion failure if ``func`` does not raise ``expected_exception``."""
+    _active_collector().assert_soft_raises(expected_exception, func, msg)
 
 
 @contextlib.contextmanager

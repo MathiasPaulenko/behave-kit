@@ -28,6 +28,7 @@ standalone or wired automatically via :func:`behave_kit.setup`.
    fixtures
    context_utilities
    step_utilities
+   utilities
    hooks
 
 .. toctree::
@@ -51,6 +52,13 @@ Features at a glance
 - **Scoped attributes** — automatic cleanup of context attributes per scenario
 - **Conditional steps** — ``@when_if`` runs a step only when a condition holds
 - **Custom parameter types** — register converters for step parameters
+- **Soft exception assertions** — ``assert_soft_raises`` for expected exceptions
+- **Data-driven steps** — ``@data_driven`` runs a step once per data row
+- **Environment snapshot** — ``env_snapshot`` isolates env var changes
+- **Dict navigation** — ``get_path`` for dot-notation nested access
+- **Time assertions** — ``assert_under`` and ``@timed`` for deadline checks
+- **Polling** — ``wait_until`` for condition-based waiting with timeout
+- **Temp workspace** — ``temp_workspace`` for filesystem-isolated tests
 - **Automatic wiring** — ``setup()`` / ``teardown()`` for zero-config adoption
 
 Three adoption levels

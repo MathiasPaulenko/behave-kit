@@ -105,6 +105,65 @@ Examples
 When the condition is ``False``, the step is silently skipped (Behave marks
 it as skipped, not failed).
 
+Data-driven steps with @data_driven
+------------------------------------
+
+Run a step once per row of a data file (CSV, JSON, YAML, Excel).  Column
+names are sanitized (hyphens and spaces become underscores) and injected as
+keyword arguments:
+
+.. autofunction:: behave_kit.steps.data_driven.data_driven
+
+Examples
+~~~~~~~~
+
+.. code-block:: python
+
+   from behave_kit import data_driven
+
+   @data_driven("tests/data/users.csv")
+   @when("I login with the test credentials")
+   def step(context, username, password):
+       login(username, password)
+   # Runs once per row in users.csv
+
+Given ``tests/data/users.csv``:
+
+.. code-block:: text
+
+   username,password
+   alice,secret
+   bob,pass123
+
+The step is called twice with ``username="alice", password="secret"`` and
+``username="bob", password="pass123"``.
+
+Column name sanitization
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Column names with hyphens or spaces are converted to valid Python
+identifiers:
+
+.. code-block:: text
+
+   user-name,pass word
+   alice,secret
+
+The step receives ``user_name`` and ``pass_word`` as keyword arguments.
+
+Using JSON or YAML
+~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   @data_driven("tests/data/items.json")
+   @when("I process each item")
+   def step(context, id, name):
+       process(id, name)
+
+The file must contain a list of dictionaries (or a single dict that will be
+wrapped in a list).
+
 Step suggestions
 ----------------
 

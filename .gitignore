@@ -19,3 +19,4 @@ htmlcov/
 coverage.xml
 debug/
 behave_output.txt
+docs/_build/

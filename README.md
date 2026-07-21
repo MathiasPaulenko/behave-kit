@@ -19,6 +19,13 @@ Behave is great for BDD, but real test suites need more than Given/When/Then. Yo
 - **Manage fixtures** with automatic setup/teardown by tag
 - **Get IDE autocompletion** for context attributes
 - **Debug failures** with automatic context dumps
+- **Poll for conditions** with configurable timeout and interval
+- **Assert expected exceptions** as part of soft assertion collections
+- **Run data-driven steps** from CSV, JSON, YAML, or Excel files
+- **Isolate environment variables** with snapshot/restore context managers
+- **Navigate nested dicts** with dot notation
+- **Assert execution time** with `assert_under` and `@timed`
+- **Create temp directories** for filesystem-isolated tests
 
 behave-kit provides all of these as independent, opt-in utilities — no monkey-patching, no breaking changes.
 
@@ -235,6 +242,93 @@ from behave_kit import parameter_type
 @parameter_type("User", r"[\w.]+@[\w.]+\.[a-z]+")
 def parse_user(text):
     return User(name=text)
+```
+
+### Soft exception assertions
+
+Check that a callable raises an expected exception, collected as a soft failure:
+
+```python
+from behave_kit import assert_soft_raises
+
+assert_soft_raises(ValueError, lambda: int("abc"))
+assert_soft_raises(KeyError, lambda: {}["missing"])
+# Failures are collected and reported together at teardown
+```
+
+### Data-driven steps
+
+Run a step once per row of a data file, with column names injected as keyword arguments:
+
+```python
+from behave_kit import data_driven
+
+@data_driven("tests/data/users.csv")
+@when("I login as {username}")
+def step(context, username=None, password=None):
+    login(username, password)
+# Runs once per row in users.csv
+```
+
+### Environment variable snapshot
+
+Save and restore `os.environ` so tests don't leak environment variable changes:
+
+```python
+from behave_kit import env_snapshot
+
+with env_snapshot():
+    os.environ["API_KEY"] = "test"
+    # ... test ...
+# API_KEY restored automatically
+```
+
+### Dict navigation with `get_path`
+
+Extract values from nested dicts using dot notation:
+
+```python
+from behave_kit import get_path
+
+city = get_path(response, "user.address.city")           # "Berlin"
+name = get_path(response, "users.0.name", default="?")   # "Alice"
+```
+
+### Time assertions
+
+Assert that a callable completes within a time limit:
+
+```python
+from behave_kit import assert_under, timed
+
+assert_under(2.0, lambda: client.get("/health"))
+
+@timed(1.5)
+@when("I fetch the data")
+def step(context): ...
+```
+
+### Wait until
+
+Poll a condition until it becomes true or a timeout is reached:
+
+```python
+from behave_kit import wait_until
+
+wait_until(lambda: context.response.status_code == 200, timeout=10, interval=0.5)
+```
+
+### Temp workspace
+
+Create an isolated temporary directory and restore the CWD on exit:
+
+```python
+from behave_kit import temp_workspace
+
+with temp_workspace() as tmp:
+    config_path = tmp / "config.json"
+    config_path.write_text("{}")
+# Directory is cleaned up automatically
 ```
 
 ## Documentation

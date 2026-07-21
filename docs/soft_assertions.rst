@@ -60,6 +60,8 @@ API reference
 
 .. autofunction:: behave_kit.assertions.soft.assert_soft_is_none
 
+.. autofunction:: behave_kit.assertions.soft.assert_soft_raises
+
 .. autofunction:: behave_kit.assertions.soft.use_soft_asserts
 
 .. autofunction:: behave_kit.assertions.soft.soft_asserts
@@ -115,6 +117,25 @@ Checking for None
    def step(context):
        assert_soft_is_none(context.error, "error should be None")
        assert_soft_is_none(context.warning, "warning should be None")
+
+Checking for expected exceptions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   from behave_kit import assert_soft_raises
+
+   @then("the parser should reject invalid input")
+   def step(context):
+       assert_soft_raises(ValueError, lambda: int("not a number"))
+       assert_soft_raises(KeyError, lambda: context.data["missing"])
+       # Failures are collected and reported together at teardown
+
+``assert_soft_raises`` also accepts a tuple of exception types:
+
+.. code-block:: python
+
+   assert_soft_raises((ValueError, KeyError), lambda: parse_risky_input())
 
 Inspecting the report
 ~~~~~~~~~~~~~~~~~~~~~
