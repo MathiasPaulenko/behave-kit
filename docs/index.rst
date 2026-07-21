@@ -28,6 +28,7 @@ standalone or wired automatically via :func:`behave_kit.setup`.
    fixtures
    context_utilities
    step_utilities
+   classy_steps
    utilities
    hooks
 
@@ -51,6 +52,7 @@ Features at a glance
 - **Step suggestions** — "did you mean?" hints for undefined steps
 - **Scoped attributes** — automatic cleanup of context attributes per scenario
 - **Conditional steps** — ``@when_if`` runs a step only when a condition holds
+- **Class-based steps** — ``step_impl_base()`` defines steps as methods on a class
 - **Custom parameter types** — register converters for step parameters
 - **Soft exception assertions** — ``assert_soft_raises`` for expected exceptions
 - **Data-driven steps** — ``@data_driven`` runs a step once per data row

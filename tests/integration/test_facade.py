@@ -19,6 +19,8 @@ def test_namespace_import_exposes_core_api() -> None:
     assert callable(bk.dump_context)
     assert callable(bk.dump_context_on_failure)
     assert callable(bk.scoped)
+    assert callable(bk.step_impl_base)
+    assert callable(bk.teardown_steps)
     assert bk.TypedContext is not None
     assert bk.KitConfig is not None
 
@@ -50,7 +52,9 @@ def test_cherry_pick_imports_work() -> None:
         skip_if_no_browser,
         skip_on_os,
         soft_asserts,
+        step_impl_base,
         teardown,
+        teardown_steps,
         use_soft_asserts,
         when_if,
     )
@@ -83,6 +87,8 @@ def test_cherry_pick_imports_work() -> None:
     assert callable(fixture)
     assert callable(setup)
     assert callable(teardown)
+    assert callable(step_impl_base)
+    assert callable(teardown_steps)
 
 
 def test_all_is_complete() -> None:
@@ -131,6 +137,8 @@ def test_all_is_complete() -> None:
         "register_builtin_types",
         "setup_suggestions",
         "data_driven",
+        "step_impl_base",
+        "teardown_steps",
         # fixtures
         "fixture",
         "Scope",

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from behave_kit.assertions.soft import use_soft_asserts
 from behave_kit.fixtures import FixtureManager
+from behave_kit.steps.classes import teardown_steps
 
 
 def before_all(context: object) -> None:
@@ -33,6 +34,8 @@ def after_scenario(context: object, scenario: object) -> None:
     collector = getattr(context, "_behave_kit_soft", None)
     if collector is not None:
         collector.clear()
+    # Tear down class-based step instances (calls teardown() on each)
+    teardown_steps(context)
     # Tear down fixtures
     manager = getattr(context, "_behave_kit_fixtures", None)
     if manager is not None:

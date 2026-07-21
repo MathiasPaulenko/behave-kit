@@ -188,16 +188,28 @@ def teardown(context: Context) -> None:
     """Clean up wired modules in reverse order.
 
     Only modules that were successfully wired during ``setup()`` are torn down.
-    Safe to call without a prior ``setup()`` (no-op).
+    Safe to call without a prior ``setup()`` (no-op).  Also tears down any
+    class-based step instances created during the scenario, even if
+    ``setup()`` was not called.
     """
     wired: set[str] = getattr(context, _WIRED_KEY, set())
 
     if "fixtures" in wired:
         _teardown_fixtures(context)
     _cleanup_scoped(context)
+    # Class-based step instances are torn down regardless of wiring,
+    # since they may be used with cherry-picked imports only.
+    _teardown_step_instances(context)
     if "dump" in wired:
         _dump_if_failed(context)
     if "soft" in wired:
         _report_soft_asserts(context)
     if "continue_after_failed" in wired:
         _reset_continue_after_failed(context)
+
+
+def _teardown_step_instances(context: Context) -> None:
+    """Tear down class-based step instances for ``context`` (no-op if none)."""
+    from behave_kit.steps.classes import teardown_steps
+
+    teardown_steps(context)

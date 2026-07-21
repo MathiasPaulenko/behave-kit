@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "behave-kit"
-version = "1.3.0"
+version = "1.3.1"
 description = "The Swiss-army knife for Behave — soft assertions, typed context, conditional skip, env management, fixtures and more."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -67,6 +67,12 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/test_classy_steps.py" = ["N806"]
+"tests/integration/test_classy_steps.py" = ["N806"]
+"tests/unit/test_classy_bugs.py" = ["N806", "SIM105"]
+"tests/unit/test_classy_bugs2.py" = ["N806", "SIM105"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["behave_kit"]

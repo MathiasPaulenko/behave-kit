@@ -28,6 +28,7 @@ Behave is great for BDD, but real test suites need more than Given/When/Then. Yo
 - **Create temp directories** for filesystem-isolated tests
 - **Continue after failed steps** for comprehensive test reporting
 - **Execute sub-steps** with outline substitution and state isolation
+- **Class-based steps** — define Given/When/Then as methods on a class with `self.context`, lifecycle hooks, and per-step matchers
 
 behave-kit provides all of these as independent, opt-in utilities — no monkey-patching, no breaking changes.
 
@@ -245,6 +246,52 @@ from behave_kit import parameter_type
 def parse_user(text):
     return User(name=text)
 ```
+
+### Class-based steps
+
+Define step implementations as methods on a class, with per-scenario instances,
+lifecycle hooks, and per-step matcher selection:
+
+```python
+from behave_kit import step_impl_base
+
+Base = step_impl_base()
+
+class AccountSteps(Base):
+    @Base.given("I have a balance of {amount:d}")
+    def set_balance(self, amount):
+        self.balance = amount
+
+    @Base.when("I deposit {amount:d}")
+    def deposit(self, amount):
+        self.balance += amount
+
+    @Base.then("the balance should be {expected:d}")
+    def check_balance(self, expected):
+        assert self.balance == expected
+
+    @property
+    def balance(self):
+        return getattr(self.context, "balance", 0)
+
+    @balance.setter
+    def balance(self, value):
+        self.context.balance = value
+
+    def setup(self):
+        # Called once when the instance is created for a scenario
+        pass
+
+    def teardown(self):
+        # Called after the scenario ends (via teardown_steps / teardown)
+        pass
+
+AccountSteps.register()
+```
+
+`self.context` is bound automatically — no `context` parameter needed.
+Subclass to extend or override steps; register only the most-derived class.
+Pass `matcher=RegexMatcher` to a decorator for per-step matcher selection.
 
 ### Soft exception assertions
 

@@ -126,6 +126,9 @@ Steps
 .. automodule:: behave_kit.steps.data_driven
    :members:
 
+.. automodule:: behave_kit.steps.classes
+   :members:
+
 Hooks
 ~~~~~
 

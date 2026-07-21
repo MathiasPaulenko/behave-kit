@@ -47,6 +47,8 @@ from behave_kit.steps import (
     parameter_type,
     register_builtin_types,
     setup_suggestions,
+    step_impl_base,
+    teardown_steps,
     when_if,
 )
 from behave_kit.timing import TimeoutExceededError, assert_under, timed
@@ -99,6 +101,8 @@ __all__ = [
     "setup_suggestions",
     "when_if",
     "data_driven",
+    "step_impl_base",
+    "teardown_steps",
     # fixtures
     "fixture",
     "Scope",
