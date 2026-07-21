@@ -29,6 +29,8 @@ standalone or wired automatically via :func:`behave_kit.setup`.
    context_utilities
    step_utilities
    classy_steps
+   sub_steps
+   continue_after_failed
    utilities
    hooks
 
@@ -61,6 +63,8 @@ Features at a glance
 - **Time assertions** — ``assert_under`` and ``@timed`` for deadline checks
 - **Polling** — ``wait_until`` for condition-based waiting with timeout
 - **Temp workspace** — ``temp_workspace`` for filesystem-isolated tests
+- **Continue after failed** — ``continue_after_failed`` keeps scenarios running after a failed step
+- **Sub-step execution** — ``run_steps`` composes steps with outline substitution and state isolation
 - **Automatic wiring** — ``setup()`` / ``teardown()`` for zero-config adoption
 
 Three adoption levels
