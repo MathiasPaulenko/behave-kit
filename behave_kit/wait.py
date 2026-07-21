@@ -53,7 +53,5 @@ def wait_until(
         time.sleep(interval)
 
     raise TimeoutError(
-        message
-        or f"wait_until() timed out after {timeout}s "
-        f"(polling every {interval}s)",
+        message or f"wait_until() timed out after {timeout}s (polling every {interval}s)",
     )

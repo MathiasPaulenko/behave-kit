@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path("..").resolve()))
 project = "behave-kit"
 author = "Mathias Paulenko"
 copyright = "2024, Mathias Paulenko"  # noqa: A001
-release = "1.0.0"
+release = "1.2.0"
 
 extensions = [
     "sphinx.ext.autodoc",

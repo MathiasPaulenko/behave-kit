@@ -81,8 +81,7 @@ def get_path(data: object, path: str, default: Any = _MISSING) -> Any:
             if default is not _MISSING:
                 return default
             raise BehaveKitError(
-                f"Cannot traverse into {type(current).__name__} at '{segment}' "
-                f"in path '{path}'",
+                f"Cannot traverse into {type(current).__name__} at '{segment}' in path '{path}'",
                 suggestion="Check the path matches the data structure",
             )
 

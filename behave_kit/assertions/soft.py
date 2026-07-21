@@ -96,9 +96,7 @@ class SoftAssertCollector:
         except Exception as exc:
             self._failures.append(
                 SoftFailure(
-                    message=msg
-                    or f"expected {expected_name}, "
-                    f"got {type(exc).__name__}",
+                    message=msg or f"expected {expected_name}, got {type(exc).__name__}",
                     expected=expected_name,
                     actual=type(exc).__name__,
                 )

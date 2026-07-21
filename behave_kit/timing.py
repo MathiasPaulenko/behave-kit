@@ -52,8 +52,7 @@ def assert_under(
     elapsed = time.monotonic() - start
     if elapsed > seconds:
         raise TimeoutExceededError(
-            message
-            or f"Execution took {elapsed:.3f}s, expected under {seconds}s",
+            message or f"Execution took {elapsed:.3f}s, expected under {seconds}s",
             suggestion="Optimize the operation or increase the time limit",
         )
     return result
@@ -95,8 +94,7 @@ def timed(
             elapsed = time.monotonic() - start
             if elapsed > seconds:
                 raise TimeoutExceededError(
-                    f"Step '{func.__name__}' took {elapsed:.3f}s, "
-                    f"expected under {seconds}s",
+                    f"Step '{func.__name__}' took {elapsed:.3f}s, expected under {seconds}s",
                     suggestion="Optimize the step or increase the time limit",
                 )
             return result

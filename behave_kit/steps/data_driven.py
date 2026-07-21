@@ -69,9 +69,7 @@ def data_driven(
                         f"Data row is {type(row).__name__}, expected dict",
                         suggestion="Ensure the data file contains rows of key-value pairs",
                     )
-                row_kwargs: dict[str, Any] = {
-                    _sanitize_key(k): v for k, v in row.items()
-                }
+                row_kwargs: dict[str, Any] = {_sanitize_key(k): v for k, v in row.items()}
                 merged = {**row_kwargs, **kwargs}
                 last_result = func(context, *args, **merged)
             return cast("R", last_result)

@@ -41,6 +41,7 @@ def skip_if_env(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
         """Wrap ``func`` to skip it on the configured environment."""
+
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
             """Skip the step when the environment matches ``env_name``."""
@@ -63,6 +64,7 @@ def skip_on_os(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
         """Wrap ``func`` to skip it on the named operating system."""
+
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
             """Skip the step when running on ``os_name``."""
@@ -85,6 +87,7 @@ def skip_if_missing(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
         """Wrap ``func`` to skip it when a dependency is missing."""
+
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
             """Skip the step when ``module_name`` cannot be imported."""
@@ -113,6 +116,7 @@ def skip_if_no_browser(
         f: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
         """Wrap ``f`` to skip it when Selenium is unavailable."""
+
         @functools.wraps(f)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
             """Skip the step when Selenium is not installed."""

@@ -1,1 +1,1 @@
-""" behave-kit test suite. """
+"""behave-kit test suite."""

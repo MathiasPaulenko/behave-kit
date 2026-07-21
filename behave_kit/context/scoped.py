@@ -50,6 +50,7 @@ def scoped(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
         """Wrap ``func`` to register ``name`` for cleanup after it runs."""
+
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
             """Run the wrapped function and track ``name`` for cleanup."""
