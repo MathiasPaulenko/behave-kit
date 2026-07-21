@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.3.1] - 2026-07-21
+
+### Added
+
+- `step_impl_base` — class-based Behave step implementations with per-scenario instances, `setup()`/`teardown()` lifecycle hooks, per-step matcher selection, and subclass overriding support.
+- `teardown_steps` — tears down all live class-based step instances for a context; wired automatically by `setup()` / `teardown()`.
+- New `behave_kit.steps.classes` module.
+- README, Sphinx docs, and E2E feature coverage for class-based steps.
+
+### Changed
+
+- `teardown()` now tears down class-based step instances even when `setup()` was not called, supporting cherry-picked usage of `step_impl_base`.
+
+### Fixed
+
+- `step_impl_base`: `register()` now cleans up any matchers added before an `AmbiguousStep` (or any other exception), preventing orphaned steps in Behave's global registry and allowing clean re-registration after the conflict is resolved.
+- `step_impl_base`: per-scenario instances are now cached **before** `setup()` runs, so a failing `setup()` no longer causes subsequent steps to re-create and re-fail the instance, and `teardown_steps()` can still call `teardown()` for resource cleanup when `setup()` raised.
+- `teardown_steps` now iterates over a snapshot of the instances dict, preventing `RuntimeError: dictionary changed size during iteration` when a `teardown()` method triggers additional step execution that adds new instances.
+- `step_impl_base`: custom matcher step definitions (via `matcher=` parameter or `default_matcher`) now validate the pattern by calling `compile()` at registration time, raising a clear `StepError` for malformed patterns instead of silently adding them and failing at match time with a confusing error.
+
 ## [1.3.0] - 2026-07-21
 
 ### Added
