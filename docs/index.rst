@@ -101,7 +101,7 @@ With optional extras:
 
 .. code-block:: bash
 
-   pip install "behave-kit[yaml,excel,dotenv,pydantic]"
+   pip install "behave-kit[yaml,excel,dotenv]"
 
 License
 -------

@@ -8,7 +8,7 @@ development commands, and the release process.
 ```bash
 git clone https://github.com/MathiasPaulenko/behave-kit.git
 cd behave-kit
-pip install -e ".[dev,yaml,excel,dotenv,pydantic]"
+pip install -e ".[dev,yaml,excel,dotenv]"
 pre-commit install
 pre-commit run --all-files
 ```

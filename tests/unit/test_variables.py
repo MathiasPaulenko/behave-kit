@@ -75,3 +75,25 @@ def test_env_converts_default(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_env_rejects_bool_as_int() -> None:
     with pytest.raises(EnvVarError):
         env("BK_TEST_VAR", var_type=int, default="true")
+
+
+def test_env_rejects_empty_key() -> None:
+    with pytest.raises(EnvVarError, match="empty"):
+        env("")
+
+
+def test_env_rejects_unsupported_var_type() -> None:
+    with pytest.raises(EnvVarError, match="Unsupported var_type"):
+        env("BK_TEST_VAR", var_type=list, default="x")  # type: ignore[arg-type]
+
+
+def test_env_rejects_bool_default_for_int(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BK_TEST_VAR", "true")
+    with pytest.raises(EnvVarError):
+        env("BK_TEST_VAR", var_type=int)
+
+
+def test_env_rejects_bool_default_for_float(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BK_TEST_VAR", "true")
+    with pytest.raises(EnvVarError):
+        env("BK_TEST_VAR", var_type=float)

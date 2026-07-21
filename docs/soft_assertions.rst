@@ -139,7 +139,7 @@ Clearing failures
 
    @then("I clear the soft assert failures")
    def step(context):
-       context._behave_kit_soft._failures.clear()
+       context._behave_kit_soft.clear()
 
 Diff-based assertions
 ---------------------

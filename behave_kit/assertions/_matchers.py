@@ -138,8 +138,8 @@ def _compare(
                 diffs.append(_mismatch(path, expected, actual))
         return
 
-    if isinstance(actual, (list, tuple, dict, set)) and isinstance(
-        expected, (list, tuple, dict, set)
+    if isinstance(actual, (list, tuple, dict, set, Mapping)) and isinstance(
+        expected, (list, tuple, dict, set, Mapping)
     ):
         seen.add(pair)
 

@@ -37,10 +37,3 @@ try:
     HAS_DOTENV = True
 except ImportError:
     HAS_DOTENV = False
-
-try:
-    import pydantic  # noqa: F401
-
-    HAS_PYDANTIC = True
-except ImportError:
-    HAS_PYDANTIC = False

@@ -11,6 +11,7 @@ import contextlib
 import contextvars
 from collections.abc import Iterator
 
+from behave_kit._core.boolutil import as_bool as _as_bool
 from behave_kit._core.errors import BehaveKitError
 from behave_kit._core.types import Context
 from behave_kit.assertions.diff import _safe_equal
@@ -56,19 +57,6 @@ class SoftAssertCollector:
     def clear(self) -> None:
         """Remove every recorded failure."""
         self._failures.clear()
-
-
-def _as_bool(value: object) -> bool:
-    """Return a scalar bool, tolerating array-like objects."""
-    try:
-        return bool(value)
-    except (ValueError, TypeError):
-        pass
-    try:
-        return bool(value.all())  # type: ignore[attr-defined]
-    except (AttributeError, ValueError, TypeError):
-        pass
-    return False
 
 
 _collector_var: contextvars.ContextVar[SoftAssertCollector | None] = contextvars.ContextVar(

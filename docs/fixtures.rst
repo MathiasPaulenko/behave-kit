@@ -46,7 +46,7 @@ Fixture scopes
 
 .. code-block:: python
 
-   from behave_kit.fixtures.registry import fixture, Scope
+   from behave_kit import fixture, Scope
 
    @fixture("browser", scope=Scope.SCENARIO)
    def browser_fixture(context):
@@ -83,7 +83,7 @@ API reference
 .. autoclass:: behave_kit.fixtures.manager.FixtureManager
    :members:
 
-.. autoclass:: behave_kit.fixtures.registry.Scope
+.. autoclass:: behave_kit._core.types.Scope
    :members:
 
 Examples

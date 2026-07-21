@@ -48,7 +48,7 @@ def step_check_failure_count(context: object, count: int) -> None:
 def step_clear_soft_assert_failures(context: object) -> None:
     collector = getattr(context, "_behave_kit_soft", None)
     if collector is not None:
-        collector._failures.clear()  # noqa: SLF001
+        collector.clear()
 
 
 # --- Skip steps ---

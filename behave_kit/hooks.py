@@ -142,7 +142,7 @@ def _report_soft_asserts(context: Context) -> None:
     collector = getattr(context, "_behave_kit_soft", None)
     if collector is not None:
         report = collector.report()
-        if report.failures:
+        if report.has_failures:
             logger.error("Soft assertion failures:\n%s", report)
         try:
             collector.raise_if_failed()

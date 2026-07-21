@@ -31,7 +31,7 @@ pip install behave-kit
 With optional extras:
 
 ```bash
-pip install "behave-kit[yaml,excel,dotenv,pydantic]"
+pip install "behave-kit[yaml,excel,dotenv]"
 ```
 
 | Extra | Provides | Dependency |
@@ -39,7 +39,6 @@ pip install "behave-kit[yaml,excel,dotenv,pydantic]"
 | `yaml` | YAML data loading | `pyyaml>=6.0` |
 | `excel` | XLSX data loading | `openpyxl>=3.1` |
 | `dotenv` | `.env` file loading | `python-dotenv>=1.0` |
-| `pydantic` | Schema validation | `pydantic>=2.0` |
 | `docs` | Sphinx documentation build | `sphinx`, `furo`, `myst-parser` |
 | `dev` | Development tools | `pytest`, `ruff`, `mypy`, `build`, `pre-commit` |
 

@@ -57,7 +57,7 @@ API reference
 .. autoclass:: behave_kit.context.typed.TypedContext
    :members:
 
-.. autofunction:: behave_kit.context.typed.ScopeError
+.. autofunction:: behave_kit._core.errors.ScopeError
 
 Examples
 --------

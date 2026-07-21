@@ -28,7 +28,7 @@ def after_scenario(context: object, scenario: object) -> None:
     # Clear soft assert failures so they don't leak
     collector = getattr(context, "_behave_kit_soft", None)
     if collector is not None:
-        collector._failures.clear()  # noqa: SLF001
+        collector.clear()
     # Tear down fixtures
     manager = getattr(context, "_behave_kit_fixtures", None)
     if manager is not None:

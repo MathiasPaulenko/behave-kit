@@ -131,7 +131,7 @@ Error handling
        value = env("MISSING_VAR", required=True)
    except EnvVarError as exc:
        print(f"Variable not set: {exc}")
-       # "Variable not set: Environment variable 'MISSING_VAR' is required but not set"
+       # "Variable not set: Environment variable 'MISSING_VAR' is not set"
 
 Configuration files
 -------------------

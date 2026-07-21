@@ -4,7 +4,7 @@ install:
 	pip install -e .
 
 dev:
-	pip install -e ".[dev,yaml,excel,dotenv,pydantic]"
+	pip install -e ".[dev,yaml,excel,dotenv]"
 
 lint:
 	ruff check .

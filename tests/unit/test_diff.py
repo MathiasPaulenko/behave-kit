@@ -80,3 +80,20 @@ def test_assert_table_equals_ragged_rows_raise_assertion() -> None:
 def test_assert_list_ordered_uncomparable_elements_raise_assertion() -> None:
     with pytest.raises(AssertionError):
         assert_list_ordered([1, None, 2])
+
+
+def test_assert_dict_contains_rejects_non_mapping_inputs() -> None:
+    with pytest.raises(AssertionError, match="requires two mappings"):
+        assert_dict_contains([1, 2], {"a": 1})  # type: ignore[arg-type]
+    with pytest.raises(AssertionError, match="requires two mappings"):
+        assert_dict_contains({"a": 1}, [1, 2])  # type: ignore[arg-type]
+
+
+def test_assert_list_ordered_empty_list_passes() -> None:
+    assert_list_ordered([])
+    assert_list_ordered([], key=lambda x: x)
+
+
+def test_assert_dict_contains_with_custom_message_prepended() -> None:
+    with pytest.raises(AssertionError, match="my prefix"):
+        assert_dict_contains({"a": 1}, {"a": 2}, msg="my prefix")

@@ -7,24 +7,12 @@ import unittest
 from collections.abc import Callable
 from typing import Concatenate, ParamSpec, TypeVar, cast
 
+from behave_kit._core.boolutil import as_bool as _as_bool
 from behave_kit._core.errors import BehaveKitError
 from behave_kit._core.types import Context
 
 P = ParamSpec("P")
 R = TypeVar("R")
-
-
-def _as_bool(value: object) -> bool:
-    """Return a scalar bool, tolerating array-like objects."""
-    try:
-        return bool(value)
-    except (ValueError, TypeError):
-        pass
-    try:
-        return bool(value.all())  # type: ignore[attr-defined]
-    except (AttributeError, ValueError, TypeError):
-        pass
-    return False
 
 
 def when_if(

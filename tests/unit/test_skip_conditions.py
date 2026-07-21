@@ -51,3 +51,12 @@ def test_is_os_with_invalid_input_returns_false() -> None:
 def test_is_missing_with_invalid_input_returns_true() -> None:
     assert is_missing(123) is True
     assert is_missing("") is True
+
+
+def test_is_os_with_empty_string_returns_false() -> None:
+    assert is_os("") is False
+
+
+def test_is_env_with_no_config_returns_false_for_any_env() -> None:
+    context = SimpleNamespace()
+    assert is_env(context, "") is False

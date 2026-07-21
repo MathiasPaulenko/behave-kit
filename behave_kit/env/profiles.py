@@ -17,13 +17,7 @@ def _merge_profiles(default: Mapping[str, Any], profile: Mapping[str, Any]) -> d
     """Merge ``profile`` over ``default`` recursively for nested dicts."""
     merged: dict[str, Any] = dict(default)
     for key, value in profile.items():
-        if (
-            key in merged
-            and isinstance(merged[key], Mapping)
-            and isinstance(value, Mapping)
-            and not isinstance(merged[key], str)
-            and not isinstance(value, str)
-        ):
+        if key in merged and isinstance(merged[key], Mapping) and isinstance(value, Mapping):
             merged[key] = _merge_profiles(merged[key], value)
         else:
             merged[key] = value

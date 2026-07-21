@@ -84,3 +84,49 @@ def test_setattr_enforces_simple_type_hints() -> None:
     typed = TypedContext(context, MySchema)
     with pytest.raises(ScopeError):
         typed.base_url = 123
+
+
+def test_optional_type_hint_accepts_none() -> None:
+    class OptionalSchema:
+        driver: str | None
+
+    context = SimpleNamespace()
+    typed = TypedContext(context, OptionalSchema)
+    typed.driver = None
+    assert context.driver is None
+    typed.driver = "chrome"
+    assert context.driver == "chrome"
+
+
+def test_union_type_hint_accepts_either_type() -> None:
+    class UnionSchema:
+        count: int | str
+
+    context = SimpleNamespace()
+    typed = TypedContext(context, UnionSchema)
+    typed.count = 5
+    assert context.count == 5
+    typed.count = "five"
+    assert context.count == "five"
+    with pytest.raises(ScopeError):
+        typed.count = [1]
+
+
+def test_any_type_hint_accepts_anything() -> None:
+    from typing import Any
+
+    class AnySchema:
+        payload: Any
+
+    context = SimpleNamespace()
+    typed = TypedContext(context, AnySchema)
+    typed.payload = {"complex": [1, 2, 3]}
+    assert context.payload == {"complex": [1, 2, 3]}
+
+
+def test_setup_with_no_kwargs_is_noop() -> None:
+    context = SimpleNamespace()
+    typed = TypedContext(context, MySchema)
+    typed.setup()
+    assert not hasattr(context, "driver")
+    assert not hasattr(context, "base_url")

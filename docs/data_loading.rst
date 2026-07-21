@@ -10,7 +10,7 @@ Supported formats
 - **CSV** — returns ``list[dict[str, str]]`` (built-in)
 - **JSON** — returns the parsed JSON object (built-in)
 - **YAML** — returns the parsed YAML object (requires ``[yaml]`` extra)
-- **XLSX** — returns ``list[dict[str, str]]`` (requires ``[excel]`` extra)
+- **XLSX** — returns ``list[dict[str, Any]]`` (requires ``[excel]`` extra)
 
 API reference
 -------------
@@ -127,7 +127,7 @@ Loading Excel
    @given("I have a list of users from Excel")
    def step(context):
        context.users = load_data("tests/data/users.xlsx")
-       # Returns: list[dict[str, str]] — one dict per row, keys from header row
+       # Returns: list[dict[str, Any]] — one dict per row, keys from header row
 
 Using load_examples_from
 ~~~~~~~~~~~~~~~~~~~~~~~~

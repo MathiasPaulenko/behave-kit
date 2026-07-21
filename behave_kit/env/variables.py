@@ -73,7 +73,7 @@ def _convert(raw: object, var_type: type) -> Any:
     if var_type is bool:
         if isinstance(raw, bool):
             return raw
-        if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+        if isinstance(raw, (int, float)):
             return bool(raw)
         return _to_bool(str(raw))
     if var_type is int:

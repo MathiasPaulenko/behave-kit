@@ -71,3 +71,29 @@ def test_load_data_rejects_json_null(tmp_path: Path) -> None:
     path.write_text("null", encoding="utf-8")
     with pytest.raises(DataLoadError, match="null"):
         load_data(path)
+
+
+def test_load_data_dispatches_uppercase_extension(tmp_path: Path) -> None:
+    path = tmp_path / "data.JSON"
+    path.write_text(json.dumps({"key": "value"}), encoding="utf-8")
+    assert load_data(path) == {"key": "value"}
+
+
+def test_load_data_rejects_empty_extension(tmp_path: Path) -> None:
+    path = tmp_path / "noext"
+    path.write_text("irrelevant", encoding="utf-8")
+    with pytest.raises(DataLoadError, match="Unsupported"):
+        load_data(path)
+
+
+def test_load_examples_from_passes_through_list_of_dicts(tmp_path: Path) -> None:
+    path = tmp_path / "users.json"
+    path.write_text(json.dumps([{"id": 1}, {"id": 2}]), encoding="utf-8")
+    assert load_examples_from(path) == [{"id": 1}, {"id": 2}]
+
+
+def test_load_data_accepts_path_object_and_string(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"k": "v"}), encoding="utf-8")
+    assert load_data(str(path)) == {"k": "v"}
+    assert load_data(path) == {"k": "v"}

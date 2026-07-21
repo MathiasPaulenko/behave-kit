@@ -182,3 +182,51 @@ def test_ignore_order_reports_nested_diff_path() -> None:
     result = deep_compare(actual, expected, options)
     assert not result.equal
     assert result.diffs[0].path == "0.name"
+
+
+def test_deep_compare_mixed_list_and_tuple_equal() -> None:
+    """Sequences of different concrete types (list vs tuple) compare by value."""
+    result = deep_compare([1, 2, 3], (1, 2, 3))
+    assert result.equal
+
+
+def test_deep_compare_mixed_list_and_tuple_differs_by_value() -> None:
+    result = deep_compare([1, 2, 3], (1, 2, 4))
+    assert not result.equal
+    assert result.diffs[0].path == "[2]"
+
+
+def test_deep_compare_dict_vs_non_mapping_differs() -> None:
+    result = deep_compare({"a": 1}, [("a", 1)])
+    assert not result.equal
+
+
+def test_deep_compare_empty_containers_equal() -> None:
+    assert deep_compare([], []).equal
+    assert deep_compare({}, {}).equal
+    assert deep_compare(set(), set()).equal
+
+
+def test_deep_compare_int_and_float_within_tolerance() -> None:
+    assert deep_compare(1, 1.0).equal
+
+
+def test_self_referential_custom_mapping_does_not_recurse_forever() -> None:
+    from collections.abc import Mapping
+
+    class SelfRef(Mapping):
+        def __init__(self, key: str, value: object = None) -> None:
+            self._data = {key: value if value is not None else self}
+
+        def __getitem__(self, key):  # type: ignore[no-untyped-def]
+            return self._data[key]
+
+        def __iter__(self):  # type: ignore[no-untyped-def]
+            return iter(self._data)
+
+        def __len__(self) -> int:
+            return len(self._data)
+
+    a = SelfRef("self")
+    result = deep_compare(a, a)
+    assert result.equal

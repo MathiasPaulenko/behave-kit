@@ -54,7 +54,7 @@ Full automatic wiring
        # Clear soft assert failures before teardown
        collector = getattr(context, "_behave_kit_soft", None)
        if collector is not None:
-           collector._failures.clear()
+           collector.clear()
        # Teardown fixtures
        manager = context._behave_kit_fixtures
        manager.teardown_scenario(context)
