@@ -11,12 +11,15 @@ from behave import given, then, when  # type: ignore[import-not-found]
 from behave_kit import (
     TypedContext,
     assert_soft,
+    continue_after_failed,
+    continue_on_failure,
     env,
     fixture,
     load_data,
+    run_steps,
     use_soft_asserts,
 )
-from behave_kit._core.errors import EnvVarError, ScopeError
+from behave_kit._core.errors import EnvVarError, ScopeError, SubStepError
 
 # --- Soft asserts steps ---
 
@@ -262,3 +265,194 @@ def step_access_undeclared(context: object, attr: str) -> None:
 def step_verify_scope_error(context: object) -> None:
     error = getattr(context, "_scope_error", None)
     assert error is not None, "Expected a ScopeError to be raised"
+
+
+# --- Continue after failed steps ---
+
+
+@given("continue_after_failed is set to true")
+def step_caf_set_true(context: object) -> None:
+    from behave.model import Scenario
+
+    continue_after_failed(True)
+    context._caf_original = getattr(Scenario, "continue_after_failed_step", False)
+
+
+@then("the Scenario class should have continue_after_failed_step set to true")
+def step_verify_caf_true(context: object) -> None:
+    from behave.model import Scenario
+
+    assert Scenario.continue_after_failed_step is True
+
+
+@then("the Scenario class should have continue_after_failed_step set to false")
+def step_verify_caf_false(context: object) -> None:
+    from behave.model import Scenario
+
+    assert Scenario.continue_after_failed_step is False
+
+
+@then("continue_after_failed is restored to false")
+def step_caf_restore(context: object) -> None:
+    continue_after_failed(False)
+
+
+@given("the Scenario class has continue_after_failed_step set to false")
+def step_caf_ensure_false(context: object) -> None:
+    from behave.model import Scenario
+
+    Scenario.continue_after_failed_step = False
+
+
+@when("I enter a continue_on_failure block")
+def step_enter_caf_block(context: object) -> None:
+    cm = continue_on_failure()
+    cm.__enter__()
+    context._caf_cm = cm
+
+
+@then("after exiting the block it should be restored to false")
+def step_exit_caf_block(context: object) -> None:
+    cm = getattr(context, "_caf_cm", None)
+    assert cm is not None, "No continue_on_failure block was entered"
+    cm.__exit__(None, None, None)
+    from behave.model import Scenario
+
+    assert Scenario.continue_after_failed_step is False
+
+
+@when("I enter a continue_on_failure block that raises ValueError")
+def step_enter_caf_block_with_error(context: object) -> None:
+    from behave.model import Scenario
+
+    try:
+        with continue_on_failure():
+            raise ValueError("test error")
+    except ValueError:
+        pass
+    context._caf_after_exception = Scenario.continue_after_failed_step
+
+
+@then("the Scenario class should have continue_after_failed_step restored after exception")
+def step_verify_caf_after_exception(context: object) -> None:
+    from behave.model import Scenario
+
+    assert Scenario.continue_after_failed_step is False
+
+
+# --- Substeps steps ---
+
+
+class _FakeFeatureContext:
+    """Minimal context for testing run_steps without a real Behave runner."""
+
+    def __init__(self, **kwargs: object) -> None:
+        self.feature = kwargs.get("feature", object())
+        self.active_outline = kwargs.get("active_outline")
+        self.table = kwargs.get("table")
+        self.text = kwargs.get("text")
+        self._execute_raises = kwargs.get("execute_raises")
+        self.execute_calls: list[str] = []
+
+    def execute_steps(self, steps: str) -> bool:
+        self.execute_calls.append(steps)
+        if self._execute_raises is not None:
+            raise self._execute_raises
+        return True
+
+
+@given("a feature context is active")
+def step_feature_context_active(context: object) -> None:
+    context._fake_ctx = _FakeFeatureContext()
+
+
+@given("no feature context is active")
+def step_no_feature_context(context: object) -> None:
+    context._fake_ctx = _FakeFeatureContext(feature=None)
+
+
+@given('a feature context is active with table "{table_name}"')
+def step_feature_context_with_table(context: object, table_name: str) -> None:
+    context._fake_ctx = _FakeFeatureContext(table=table_name)
+
+
+@given('a feature context is active with table "{table_name}" and failing execute')
+def step_feature_context_with_table_failing(context: object, table_name: str) -> None:
+    context._fake_ctx = _FakeFeatureContext(
+        table=table_name,
+        execute_raises=AssertionError("sub-step failed"),
+    )
+
+
+@given('a feature context is active with text "{text_value}"')
+def step_feature_context_with_text(context: object, text_value: str) -> None:
+    context._fake_ctx = _FakeFeatureContext(text=text_value)
+
+
+@given('a feature context is active with outline user "{user_value}"')
+def step_feature_context_with_outline(context: object, user_value: str) -> None:
+    context._fake_ctx = _FakeFeatureContext(active_outline={"user": user_value})
+
+
+@when('I run steps "{steps}" via run_steps')
+def step_run_steps_via_run_steps(context: object, steps: str) -> None:
+    fake_ctx = context._fake_ctx
+    try:
+        run_steps(fake_ctx, steps)
+        context._substep_error = None
+    except (SubStepError, AssertionError) as exc:
+        context._substep_error = exc
+
+
+@when("I try to run steps with non-string input via run_steps")
+def step_run_steps_non_string(context: object) -> None:
+    fake_ctx = context._fake_ctx
+    try:
+        run_steps(fake_ctx, 123)  # type: ignore[arg-type]
+        context._substep_error = None
+    except SubStepError as exc:
+        context._substep_error = exc
+
+
+@when('I try to run steps "{steps}" via run_steps')
+def step_try_run_steps(context: object, steps: str) -> None:
+    fake_ctx = context._fake_ctx
+    try:
+        run_steps(fake_ctx, steps)
+        context._substep_error = None
+    except SubStepError as exc:
+        context._substep_error = exc
+
+
+@then('the execute_steps call should contain "{expected}"')
+def step_verify_execute_call(context: object, expected: str) -> None:
+    fake_ctx = context._fake_ctx
+    assert len(fake_ctx.execute_calls) > 0, "execute_steps was not called"
+    assert expected in fake_ctx.execute_calls[-1], (
+        f"Expected '{expected}' in '{fake_ctx.execute_calls[-1]}'"
+    )
+
+
+@then('the context table should be "{expected}"')
+def step_verify_table_restored(context: object, expected: str) -> None:
+    fake_ctx = context._fake_ctx
+    assert fake_ctx.table == expected, f"Expected table '{expected}', got '{fake_ctx.table}'"
+
+
+@then('the context text should be "{expected}"')
+def step_verify_text_restored(context: object, expected: str) -> None:
+    fake_ctx = context._fake_ctx
+    assert fake_ctx.text == expected, f"Expected text '{expected}', got '{fake_ctx.text}'"
+
+
+@then('a SubStepError should be raised with message "{message}"')
+def step_verify_substep_error(context: object, message: str) -> None:
+    error = getattr(context, "_substep_error", None)
+    assert error is not None, "Expected a SubStepError to be raised"
+    assert message in str(error), f"Expected '{message}' in error message, got '{error}'"
+
+
+@then("a sub-step error should have been caught")
+def step_verify_substep_error_caught(context: object) -> None:
+    error = getattr(context, "_substep_error", None)
+    assert error is not None, "Expected an error to be caught from failing sub-step"

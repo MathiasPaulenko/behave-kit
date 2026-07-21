@@ -22,6 +22,10 @@ def before_all(context: object) -> None:
 def before_scenario(context: object, scenario: object) -> None:
     # Fresh soft assert collector per scenario
     use_soft_asserts(context)
+    # Reset continue_after_failed_step to default before each scenario
+    from behave.model import Scenario
+
+    Scenario.continue_after_failed_step = False
 
 
 def after_scenario(context: object, scenario: object) -> None:
@@ -33,3 +37,7 @@ def after_scenario(context: object, scenario: object) -> None:
     manager = getattr(context, "_behave_kit_fixtures", None)
     if manager is not None:
         manager.teardown_scenario(context)
+    # Reset continue_after_failed_step after each scenario
+    from behave.model import Scenario
+
+    Scenario.continue_after_failed_step = False

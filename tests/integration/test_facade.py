@@ -106,6 +106,7 @@ def test_all_is_complete() -> None:
         "TypedContext",
         "dump_context",
         "dump_context_on_failure",
+        "run_steps",
         "scoped",
         "cleanup_scoped",
         # skip
@@ -133,6 +134,9 @@ def test_all_is_complete() -> None:
         # fixtures
         "fixture",
         "Scope",
+        # continue after failed
+        "continue_after_failed",
+        "continue_on_failure",
         # hooks
         "setup",
         "teardown",

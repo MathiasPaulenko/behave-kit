@@ -54,3 +54,7 @@ class ScopeError(BehaveKitError, AttributeError):
 
 class StepError(BehaveKitError):
     """Raised when a step is ambiguous or a parameter type is invalid."""
+
+
+class SubStepError(BehaveKitError):
+    """Raised when sub-step execution fails or is used outside a feature context."""

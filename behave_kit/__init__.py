@@ -9,7 +9,7 @@ Three adoption levels:
 
 from __future__ import annotations
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 from behave_kit._core.types import Scope
 from behave_kit.assertions import (
@@ -32,8 +32,10 @@ from behave_kit.context import (
     cleanup_scoped,
     dump_context,
     dump_context_on_failure,
+    run_steps,
     scoped,
 )
+from behave_kit.continue_after_failed import continue_after_failed, continue_on_failure
 from behave_kit.data import DataCache, data_provider, get_provider, load_data, load_examples_from
 from behave_kit.env import KitConfig, env, env_snapshot
 from behave_kit.fixtures import fixture
@@ -72,6 +74,7 @@ __all__ = [
     "TypedContext",
     "dump_context",
     "dump_context_on_failure",
+    "run_steps",
     "scoped",
     "cleanup_scoped",
     # skip
@@ -99,6 +102,9 @@ __all__ = [
     # fixtures
     "fixture",
     "Scope",
+    # continue after failed
+    "continue_after_failed",
+    "continue_on_failure",
     # hooks
     "setup",
     "teardown",

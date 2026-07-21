@@ -42,6 +42,15 @@ Context
 .. automodule:: behave_kit.context.dump
    :members:
 
+.. automodule:: behave_kit.context.substeps
+   :members:
+
+Continue after failed
+~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: behave_kit.continue_after_failed
+   :members:
+
 Skip
 ~~~~
 

@@ -5,7 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] - 2026-07-21
+
+### Added
+
+- `continue_after_failed` — set whether scenarios continue executing remaining steps after a failure (globally or via `continue_on_failure()` context manager).
+- `run_steps` — execute Gherkin sub-steps with Scenario Outline variable substitution and guaranteed `context.table`/`context.text` restoration.
+- `SubStepError` — new exception type for sub-step execution errors.
+- `setup()` now accepts an optional `continue_after_failed` parameter.
+- `teardown()` now resets `continue_after_failed_step` if it was wired by `setup()`.
+- README and Sphinx docs updated with new features.
+- Comprehensive unit, integration, and E2E tests for both new features.
+
+### Fixed
+
+- `continue_after_failed` now validates that `enabled` is a boolean, preventing silent falsy values like `None`.
+- `run_steps` now rejects empty or whitespace-only step strings before delegating to `execute_steps`.
+- `run_steps` now validates that `context.active_outline` is a dict when present, preventing incorrect list/string membership checks.
+- `run_steps` now validates that `context.execute_steps` is callable before invoking it.
+- `teardown()` now resets `Scenario.continue_after_failed_step` to `False` when `continue_after_failed` was wired by `setup()`, preventing state leaks between test runs.
 
 ## [1.2.0] - 2026-07-21
 

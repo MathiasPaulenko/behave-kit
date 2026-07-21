@@ -90,3 +90,100 @@ def test_setup_attaches_suggestions_hook() -> None:
     setup(context)
     hook = getattr(context, "_behave_kit_suggestions", None)
     assert callable(hook)
+
+
+# ---------------------------------------------------------------------------
+# continue_after_failed integration
+# ---------------------------------------------------------------------------
+
+
+def test_setup_with_continue_after_failed_true() -> None:
+    from behave.model import Scenario
+
+    original = getattr(Scenario, "continue_after_failed_step", False)
+    try:
+        context = SimpleNamespace()
+        setup(context, continue_after_failed=True)
+        wired = getattr(context, _WIRED_KEY)
+        assert "continue_after_failed" in wired
+        assert Scenario.continue_after_failed_step is True
+    finally:
+        Scenario.continue_after_failed_step = original
+
+
+def test_setup_with_continue_after_failed_false() -> None:
+    from behave.model import Scenario
+
+    original = getattr(Scenario, "continue_after_failed_step", False)
+    try:
+        context = SimpleNamespace()
+        setup(context, continue_after_failed=False)
+        wired = getattr(context, _WIRED_KEY)
+        assert "continue_after_failed" in wired
+        assert Scenario.continue_after_failed_step is False
+    finally:
+        Scenario.continue_after_failed_step = original
+
+
+def test_setup_with_continue_after_failed_none_skips_wiring() -> None:
+    from behave.model import Scenario
+
+    original = getattr(Scenario, "continue_after_failed_step", False)
+    try:
+        Scenario.continue_after_failed_step = False
+        context = SimpleNamespace()
+        setup(context, continue_after_failed=None)
+        wired = getattr(context, _WIRED_KEY)
+        assert "continue_after_failed" not in wired
+        assert Scenario.continue_after_failed_step is False
+    finally:
+        Scenario.continue_after_failed_step = original
+
+
+def test_setup_with_continue_after_failed_and_env_combined() -> None:
+    from behave.model import Scenario
+
+    original = getattr(Scenario, "continue_after_failed_step", False)
+    try:
+        context = SimpleNamespace()
+        setup(context, env=None, continue_after_failed=True)
+        wired = getattr(context, _WIRED_KEY)
+        assert "continue_after_failed" in wired
+        assert "soft" in wired
+        assert Scenario.continue_after_failed_step is True
+    finally:
+        Scenario.continue_after_failed_step = original
+
+
+def test_teardown_resets_continue_after_failed() -> None:
+    from behave.model import Scenario
+
+    from behave_kit.hooks import teardown
+
+    original = getattr(Scenario, "continue_after_failed_step", False)
+    try:
+        context = SimpleNamespace()
+        setup(context, continue_after_failed=True)
+        assert Scenario.continue_after_failed_step is True
+        teardown(context)
+        assert Scenario.continue_after_failed_step is False
+    finally:
+        Scenario.continue_after_failed_step = original
+
+
+def test_teardown_does_not_reset_continue_after_failed_if_not_wired() -> None:
+    from behave.model import Scenario
+
+    from behave_kit.hooks import teardown
+
+    original = getattr(Scenario, "continue_after_failed_step", False)
+    try:
+        Scenario.continue_after_failed_step = True
+        context = SimpleNamespace()
+        setup(context)  # continue_after_failed=None (default)
+        assert "continue_after_failed" not in getattr(context, _WIRED_KEY)
+        teardown(context)
+        # Should remain True since it was not wired by setup
+        assert Scenario.continue_after_failed_step is True
+    finally:
+        Scenario.continue_after_failed_step = original

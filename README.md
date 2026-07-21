@@ -26,6 +26,8 @@ Behave is great for BDD, but real test suites need more than Given/When/Then. Yo
 - **Navigate nested dicts** with dot notation
 - **Assert execution time** with `assert_under` and `@timed`
 - **Create temp directories** for filesystem-isolated tests
+- **Continue after failed steps** for comprehensive test reporting
+- **Execute sub-steps** with outline substitution and state isolation
 
 behave-kit provides all of these as independent, opt-in utilities — no monkey-patching, no breaking changes.
 
@@ -329,6 +331,48 @@ with temp_workspace() as tmp:
     config_path = tmp / "config.json"
     config_path.write_text("{}")
 # Directory is cleaned up automatically
+```
+
+### Continue after failed step
+
+Control whether scenarios keep running remaining steps after a failure:
+
+```python
+from behave_kit import continue_after_failed, continue_on_failure
+
+# Enable globally
+continue_after_failed(True)
+
+# Or temporarily via context manager
+with continue_on_failure():
+    # scenarios inside this block continue after failed steps
+    ...
+```
+
+Or wire it through `setup()`:
+
+```python
+from behave_kit import setup
+
+def before_all(context):
+    setup(context, continue_after_failed=True)
+```
+
+### Sub-step execution with isolation
+
+Execute Gherkin sub-steps with Scenario Outline variable substitution and guaranteed table/text restoration:
+
+```python
+from behave_kit import run_steps
+
+@when("I complete the checkout flow")
+def step_impl(context):
+    run_steps(context, '''
+        Given I have items in my cart
+        When I enter shipping info for "<city>"
+        Then I should see the order confirmation
+    ''')
+# context.table and context.text are preserved after execution
 ```
 
 ## Documentation

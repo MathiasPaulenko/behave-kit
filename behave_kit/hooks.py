@@ -77,11 +77,22 @@ def setup(
     env: str | None = None,
     config_file: str = "behave.toml",
     log_level: str = "INFO",
+    continue_after_failed: bool | None = None,
 ) -> None:
     """Wire all behave-kit modules into ``context``.
 
     Idempotent: calling twice is a no-op.  Each module is wired independently
     in try/except — a failure in one does not prevent the others.
+
+    Args:
+        context: The Behave context object.
+        env: Optional environment name for profile-based configuration.
+        config_file: Path to the configuration file (default ``behave.toml``).
+        log_level: Logging level for the ``behave_kit`` logger.
+        continue_after_failed: When ``True``, scenarios continue executing
+            remaining steps after a failure.  When ``False``, the default
+            Behave behaviour (stop on first failure) is restored.  ``None``
+            leaves the current setting unchanged.
     """
     _validate_log_level(log_level)
     logging.getLogger("behave_kit").setLevel(log_level)
@@ -89,6 +100,15 @@ def setup(
         return
 
     wired: set[str] = set()
+
+    if continue_after_failed is not None:
+        try:
+            from behave_kit.continue_after_failed import continue_after_failed as _caf
+
+            _caf(continue_after_failed)
+            wired.add("continue_after_failed")
+        except Exception:
+            logger.warning("Failed to set continue_after_failed", exc_info=True)
 
     if env is not None:
         try:
@@ -158,6 +178,12 @@ def _dump_if_failed(context: Context) -> None:
         dump_context_on_failure(context, scenario)
 
 
+def _reset_continue_after_failed(context: Context) -> None:
+    from behave_kit.continue_after_failed import continue_after_failed as _caf
+
+    _caf(False)
+
+
 def teardown(context: Context) -> None:
     """Clean up wired modules in reverse order.
 
@@ -173,3 +199,5 @@ def teardown(context: Context) -> None:
         _dump_if_failed(context)
     if "soft" in wired:
         _report_soft_asserts(context)
+    if "continue_after_failed" in wired:
+        _reset_continue_after_failed(context)
