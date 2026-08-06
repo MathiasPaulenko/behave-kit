@@ -456,3 +456,43 @@ def step_verify_substep_error(context: object, message: str) -> None:
 def step_verify_substep_error_caught(context: object) -> None:
     error = getattr(context, "_substep_error", None)
     assert error is not None, "Expected an error to be caught from failing sub-step"
+
+
+# --- Timeout steps ---
+
+
+@given("a default timeout of {seconds:d} seconds is configured")
+def step_configure_default_timeout(context: object, seconds: int) -> None:
+    """Configure the default timeout on the context."""
+    from behave_kit.timeout import setup_timeout
+
+    setup_timeout(context, default_timeout=seconds)
+
+
+@when("a step completes instantly")
+def step_completes_instantly(context: object) -> None:
+    """A step that finishes immediately — should never trigger timeout."""
+    pass
+
+
+@when("a step sleeps for {seconds:d} seconds")
+def step_sleeps(context: object, seconds: int) -> None:
+    """A step that sleeps — used to trigger timeout."""
+    import time
+
+    time.sleep(seconds)
+
+
+@then("the scenario should pass without timeout")
+def step_verify_no_timeout(context: object) -> None:
+    """If we reach this step, the scenario didn't time out."""
+    pass
+
+
+@then("the scenario should fail with timeout")
+def step_verify_timeout_failure(context: object) -> None:
+    """This step should never execute — the previous step should have timed out.
+
+    If we reach here, the timeout didn't fire.
+    """
+    raise AssertionError("Expected scenario to fail with TimeoutError, but it didn't")
