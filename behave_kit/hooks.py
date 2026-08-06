@@ -30,6 +30,12 @@ _FIXTURES_KEY = "_behave_kit_fixtures"
 _SUGGESTIONS_KEY = "_behave_kit_suggestions"
 
 
+def _get_timeout_key() -> str:
+    from behave_kit.timeout import _TIMEOUT_HANDLER_KEY
+
+    return _TIMEOUT_HANDLER_KEY
+
+
 def _validate_log_level(level: str) -> None:
     try:
         logging.getLogger().setLevel(level)
@@ -69,6 +75,16 @@ def _wire_fixtures(context: Context) -> None:
 
     manager = FixtureManager()
     setattr(context, _FIXTURES_KEY, manager)
+
+
+def _teardown_timeout(context: Context) -> None:
+    from behave_kit.timeout import timeout_after_scenario
+
+    handler = getattr(context, _get_timeout_key(), None)
+    if handler is not None:
+        scenario = getattr(context, "scenario", None)
+        if scenario is not None:
+            timeout_after_scenario(context, scenario)
 
 
 def setup(
@@ -144,6 +160,14 @@ def setup(
     setattr(context, _WIRED_KEY, wired)
 
 
+def teardown_timeout(context: Context) -> None:
+    """Cancel any active per-scenario timeout.
+
+    Safe to call without a prior ``setup_timeout`` (no-op).
+    """
+    _teardown_timeout(context)
+
+
 def _teardown_fixtures(context: Context) -> None:
     manager = getattr(context, _FIXTURES_KEY, None)
     if manager is not None:
@@ -196,6 +220,7 @@ def teardown(context: Context) -> None:
 
     if "fixtures" in wired:
         _teardown_fixtures(context)
+    _teardown_timeout(context)
     _cleanup_scoped(context)
     # Class-based step instances are torn down regardless of wiring,
     # since they may be used with cherry-picked imports only.
