@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-06
+
+### Added
+
+- `setup_timeout` — configure a default per-scenario timeout on the Behave context.
+- `timeout_before_scenario` / `timeout_after_scenario` — hook functions to start and cancel per-scenario timers.
+- `teardown_timeout` — public teardown function for cleanup in `teardown()`.
+- `@timeout:N` tag support — override the default timeout per scenario or feature. Scenario tags take precedence over feature tags.
+- `@timeout:0` disables the timeout for a specific scenario.
+- Platform-aware handlers: `signal.SIGALRM` on Unix for immediate interruption, `threading.Timer` on Windows as fallback.
+- New `behave_kit.timeout` module.
+- README, Sphinx docs, and E2E feature coverage for per-scenario timeout.
+
+### Fixed
+
+- Reject `inf`, `nan`, and `-inf` as timeout tag values (would create confusing handler behaviour).
+- `timeout_after_scenario` now passes the scenario's existing exception to the handler, preventing `TimeoutError` from masking the original failure.
+- `setup_timeout` validates `timeout_tag` is a non-empty string and `default_timeout` is finite.
+- `SignalTimeoutHandler` and `ThreadTimeoutHandler` are now reentrancy-guarded — calling `__enter__` twice raises `RuntimeError`.
+- `__exit__` without prior `__enter__` is now a safe no-op on both handlers.
+- Deduplicated `_TIMEOUT_KEY` constant between `hooks.py` and `timeout.py` (single source of truth).
+
 ## [1.3.1] - 2026-07-21
 
 ### Added

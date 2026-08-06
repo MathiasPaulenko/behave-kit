@@ -135,6 +135,12 @@ Hooks
 .. automodule:: behave_kit.hooks
    :members:
 
+Timeout
+~~~~~~~
+
+.. automodule:: behave_kit.timeout
+   :members:
+
 Utilities
 ~~~~~~~~~
 

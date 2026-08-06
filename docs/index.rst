@@ -31,6 +31,7 @@ standalone or wired automatically via :func:`behave_kit.setup`.
    classy_steps
    sub_steps
    continue_after_failed
+   timeout
    utilities
    hooks
 
@@ -65,6 +66,7 @@ Features at a glance
 - **Temp workspace** — ``temp_workspace`` for filesystem-isolated tests
 - **Continue after failed** — ``continue_after_failed`` keeps scenarios running after a failed step
 - **Sub-step execution** — ``run_steps`` composes steps with outline substitution and state isolation
+- **Per-scenario timeout** — ``@timeout:N`` tags override a default, platform-aware (SIGALRM / threading.Timer)
 - **Automatic wiring** — ``setup()`` / ``teardown()`` for zero-config adoption
 
 Three adoption levels

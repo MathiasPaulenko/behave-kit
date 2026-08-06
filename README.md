@@ -29,6 +29,7 @@ Behave is great for BDD, but real test suites need more than Given/When/Then. Yo
 - **Continue after failed steps** for comprehensive test reporting
 - **Execute sub-steps** with outline substitution and state isolation
 - **Class-based steps** — define Given/When/Then as methods on a class with `self.context`, lifecycle hooks, and per-step matchers
+- **Per-scenario timeout** — `@timeout:N` tags override a default, platform-aware (SIGALRM on Unix, threading.Timer on Windows)
 
 behave-kit provides all of these as independent, opt-in utilities — no monkey-patching, no breaking changes.
 
@@ -421,6 +422,42 @@ def step_impl(context):
     ''')
 # context.table and context.text are preserved after execution
 ```
+
+### Per-scenario timeout
+
+Set a default timeout and override it per scenario or feature with `@timeout:N` tags:
+
+```python
+from behave_kit import setup_timeout
+from behave_kit.timeout import timeout_before_scenario, timeout_after_scenario
+
+def before_all(context):
+    setup_timeout(context, default_timeout=30)
+
+def before_scenario(context, scenario):
+    timeout_before_scenario(context, scenario)
+
+def after_scenario(context, scenario):
+    timeout_after_scenario(context, scenario)
+```
+
+```gherkin
+@timeout:10
+Scenario: Fast scenario with tag override
+  When I do something quick
+
+@timeout:0
+Scenario: Disable timeout for this scenario
+  When I do something slow
+
+@timeout:60
+Feature: Feature-level timeout inherits to all scenarios
+```
+
+- **Unix**: uses `signal.SIGALRM` for immediate interruption.
+- **Windows**: uses `threading.Timer` fallback (detected after step finishes).
+- `@timeout:0` disables the timeout for that scenario.
+- Feature-level tags inherit to all scenarios; scenario tags override feature tags.
 
 ## Documentation
 
