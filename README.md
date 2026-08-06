@@ -62,8 +62,10 @@ Add two lines to your `environment.py` and every feature is wired automatically:
 ```python
 from behave_kit import setup, teardown
 
+
 def before_all(context):
     setup(context, env="staging")
+
 
 def after_scenario(context, scenario):
     teardown(context)
@@ -76,6 +78,7 @@ Import only what you need:
 ```python
 from behave_kit import assert_soft, env, load_data
 
+
 @then("the response should be valid")
 def step(context):
     assert_soft(context.response.status_code == 200)
@@ -87,6 +90,7 @@ def step(context):
 
 ```python
 import behave_kit as bk
+
 
 @then("the response should be valid")
 def step(context):
@@ -115,9 +119,11 @@ Schema-validated proxy with IDE autocompletion and mypy support:
 ```python
 from behave_kit import TypedContext
 
+
 class MySchema:
     driver: str
     base_url: str
+
 
 ctx = TypedContext(context, MySchema)
 ctx.setup(driver="chrome", base_url="https://test.com")
@@ -131,17 +137,21 @@ Skip steps by environment, OS, or missing dependency:
 ```python
 from behave_kit import skip_if_env, skip_if_no_browser, skip_on_os, skip_if_missing
 
+
 @skip_if_env("production")
 @when("I run the staging-only step")
 def step(context): ...
+
 
 @skip_if_no_browser
 @when("I open the browser")
 def step(context): ...
 
+
 @skip_on_os("windows")
 @when("I run the unix-only step")
 def step(context): ...
+
 
 @skip_if_missing("selenium")
 @when("I use selenium")
@@ -155,9 +165,9 @@ Typed reads with defaults, validation, and config file fallback:
 ```python
 from behave_kit import env
 
-api_key = env("API_KEY", required=True)                    # str
-timeout = env("TIMEOUT", var_type=int, default=30)         # int
-debug = env("DEBUG", var_type=bool, default=False)         # bool
+api_key = env("API_KEY", required=True)  # str
+timeout = env("TIMEOUT", var_type=int, default=30)  # int
+debug = env("DEBUG", var_type=bool, default=False)  # bool
 ```
 
 ### Data loading
@@ -167,9 +177,9 @@ Single API for CSV, JSON, YAML, and Excel:
 ```python
 from behave_kit import load_data
 
-users = load_data("tests/data/users.csv")       # list[dict]
-config = load_data("tests/data/config.json")    # dict
-sheet = load_data("tests/data/sheet.xlsx")      # list[dict] (requires [excel])
+users = load_data("tests/data/users.csv")  # list[dict]
+config = load_data("tests/data/config.json")  # dict
+sheet = load_data("tests/data/sheet.xlsx")  # list[dict] (requires [excel])
 ```
 
 ### Fixtures
@@ -179,17 +189,20 @@ Tag-based setup/teardown with dependency resolution:
 ```python
 from behave_kit import fixture
 
+
 @fixture("browser")
 def browser_fixture(context):
     def setup(ctx):
         ctx.browser = start_browser()
+
     def teardown(ctx):
         ctx.browser.quit()
+
     return (setup, teardown)
 
+
 @fixture("database", requires="browser")
-def database_fixture(context):
-    ...
+def database_fixture(context): ...
 ```
 
 ### Context dump
@@ -217,10 +230,13 @@ Automatic cleanup of context attributes per scenario:
 ```python
 from behave_kit import scoped
 
+
 @scoped("driver")
 @when("I start the driver")
 def step(context):
     context.driver = start_driver()
+
+
 # "driver" is automatically deleted after the scenario
 ```
 
@@ -230,6 +246,7 @@ Run a step only when a condition holds:
 
 ```python
 from behave_kit import when_if
+
 
 @when_if(lambda ctx: ctx.config.env == "staging")
 @when("I run the staging-only step")
@@ -242,6 +259,7 @@ Register custom Behave parameter types:
 
 ```python
 from behave_kit import parameter_type
+
 
 @parameter_type("User", r"[\w.]+@[\w.]+\.[a-z]+")
 def parse_user(text):
@@ -257,6 +275,7 @@ lifecycle hooks, and per-step matcher selection:
 from behave_kit import step_impl_base
 
 Base = step_impl_base()
+
 
 class AccountSteps(Base):
     @Base.given("I have a balance of {amount:d}")
@@ -287,6 +306,7 @@ class AccountSteps(Base):
         # Called after the scenario ends (via teardown_steps / teardown)
         pass
 
+
 AccountSteps.register()
 ```
 
@@ -313,10 +333,13 @@ Run a step once per row of a data file, with column names injected as keyword ar
 ```python
 from behave_kit import data_driven
 
+
 @data_driven("tests/data/users.csv")
 @when("I login as {username}")
 def step(context, username=None, password=None):
     login(username, password)
+
+
 # Runs once per row in users.csv
 ```
 
@@ -340,8 +363,8 @@ Extract values from nested dicts using dot notation:
 ```python
 from behave_kit import get_path
 
-city = get_path(response, "user.address.city")           # "Berlin"
-name = get_path(response, "users.0.name", default="?")   # "Alice"
+city = get_path(response, "user.address.city")  # "Berlin"
+name = get_path(response, "users.0.name", default="?")  # "Alice"
 ```
 
 ### Time assertions
@@ -352,6 +375,7 @@ Assert that a callable completes within a time limit:
 from behave_kit import assert_under, timed
 
 assert_under(2.0, lambda: client.get("/health"))
+
 
 @timed(1.5)
 @when("I fetch the data")
@@ -402,6 +426,7 @@ Or wire it through `setup()`:
 ```python
 from behave_kit import setup
 
+
 def before_all(context):
     setup(context, continue_after_failed=True)
 ```
@@ -413,13 +438,19 @@ Execute Gherkin sub-steps with Scenario Outline variable substitution and guaran
 ```python
 from behave_kit import run_steps
 
+
 @when("I complete the checkout flow")
 def step_impl(context):
-    run_steps(context, '''
+    run_steps(
+        context,
+        """
         Given I have items in my cart
         When I enter shipping info for "<city>"
         Then I should see the order confirmation
-    ''')
+    """,
+    )
+
+
 # context.table and context.text are preserved after execution
 ```
 
@@ -431,11 +462,14 @@ Set a default timeout and override it per scenario or feature with `@timeout:N` 
 from behave_kit import setup_timeout
 from behave_kit.timeout import timeout_before_scenario, timeout_after_scenario
 
+
 def before_all(context):
     setup_timeout(context, default_timeout=30)
 
+
 def before_scenario(context, scenario):
     timeout_before_scenario(context, scenario)
+
 
 def after_scenario(context, scenario):
     timeout_after_scenario(context, scenario)

@@ -120,7 +120,9 @@ def _extract_scenario_block(output: str, scenario_name: str) -> str | None:
             or stripped.startswith("0 features")
             or stripped.startswith("1 features")
             or stripped.startswith("2 features")
-            or stripped and stripped[0].isdigit() and "features passed" in stripped
+            or stripped
+            and stripped[0].isdigit()
+            and "features passed" in stripped
         ):
             break
         block_lines.append(line)

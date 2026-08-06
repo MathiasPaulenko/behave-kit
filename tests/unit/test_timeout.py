@@ -488,6 +488,7 @@ class TestSignalTimeoutHandlerMocked:
 
     def test_exit_cancels_timer_and_restores_handler(self) -> None:
         calls: list[str] = []
+
         def original_handler(*_a: object) -> None:
             pass
 
