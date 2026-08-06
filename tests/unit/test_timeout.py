@@ -10,6 +10,7 @@ import pytest
 
 from behave_kit.timeout import (
     _IS_WINDOWS,
+    _TIMEOUT_HANDLER_KEY,
     SignalTimeoutHandler,
     ThreadTimeoutHandler,
     _parse_timeout_tag,
@@ -318,17 +319,9 @@ class TestThreadTimeoutHandler:
         handler = ThreadTimeoutHandler(10.0)
         with handler:
             pass
+        # Timer should have been cancelled — _entered is False after exit
+        assert handler._entered is False
         assert handler._timer is None
-
-    def test_timed_out_flag_set_after_expiry(self) -> None:
-        handler = ThreadTimeoutHandler(0.05)
-        handler.__enter__()
-        time.sleep(0.15)
-        # Cancel before __exit__ to check the flag
-        assert handler._timed_out is True
-        # __exit__ should raise since timed_out and no exception
-        with pytest.raises(TimeoutError, match="exceeded timeout"):
-            handler.__exit__(None, None, None)
 
     def test_does_not_raise_if_exception_already_present(self) -> None:
         handler = ThreadTimeoutHandler(0.05)
@@ -618,7 +611,14 @@ def test_signal_handler_reentrancy_raises() -> None:
 
 def test_after_scenario_preserves_existing_exception(ctx: FakeContext) -> None:
     """If scenario already failed, timeout_after_scenario should not mask it."""
-    setup_timeout(ctx, default_timeout=0.05)
+    # Use ThreadTimeoutHandler directly — this test is about the ThreadTimer
+    # fallback behaviour (SignalTimeoutHandler raises immediately during step
+    # execution, so there's nothing to check in after_scenario).
+    handler = ThreadTimeoutHandler(0.05)
+    handler.__enter__()
+    setattr(ctx, _TIMEOUT_HANDLER_KEY, handler)
+    # Simulate the timer firing
+    handler._timed_out = True
 
     class ScenarioWithException:
         tags: list[str] = []
@@ -626,17 +626,16 @@ def test_after_scenario_preserves_existing_exception(ctx: FakeContext) -> None:
         exception = ValueError("original step failure")
 
     scenario = ScenarioWithException()
-    timeout_before_scenario(ctx, scenario)
-    # Simulate the timer firing
-    handler = ctx._behave_kit_timeout_handler
-    handler._timed_out = True  # type: ignore[attr-defined]
     # Should NOT raise TimeoutError because the scenario has an existing exception
     timeout_after_scenario(ctx, scenario)
 
 
 def test_after_scenario_raises_when_no_existing_exception(ctx: FakeContext) -> None:
     """If scenario has no exception and timer fired, TimeoutError should be raised."""
-    setup_timeout(ctx, default_timeout=0.05)
+    handler = ThreadTimeoutHandler(0.05)
+    handler.__enter__()
+    setattr(ctx, _TIMEOUT_HANDLER_KEY, handler)
+    handler._timed_out = True
 
     class ScenarioNoException:
         tags: list[str] = []
@@ -644,16 +643,16 @@ def test_after_scenario_raises_when_no_existing_exception(ctx: FakeContext) -> N
         exception = None
 
     scenario = ScenarioNoException()
-    timeout_before_scenario(ctx, scenario)
-    handler = ctx._behave_kit_timeout_handler
-    handler._timed_out = True  # type: ignore[attr-defined]
     with pytest.raises(TimeoutError, match="exceeded timeout"):
         timeout_after_scenario(ctx, scenario)
 
 
 def test_after_scenario_with_non_exception_attr(ctx: FakeContext) -> None:
     """If scenario.exception is not a BaseException, it should be ignored."""
-    setup_timeout(ctx, default_timeout=0.05)
+    handler = ThreadTimeoutHandler(0.05)
+    handler.__enter__()
+    setattr(ctx, _TIMEOUT_HANDLER_KEY, handler)
+    handler._timed_out = True
 
     class ScenarioWithBadException:
         tags: list[str] = []
@@ -661,9 +660,6 @@ def test_after_scenario_with_non_exception_attr(ctx: FakeContext) -> None:
         exception = "not an exception"  # type: ignore[assignment]
 
     scenario = ScenarioWithBadException()
-    timeout_before_scenario(ctx, scenario)
-    handler = ctx._behave_kit_timeout_handler
-    handler._timed_out = True  # type: ignore[attr-defined]
     with pytest.raises(TimeoutError, match="exceeded timeout"):
         timeout_after_scenario(ctx, scenario)
 

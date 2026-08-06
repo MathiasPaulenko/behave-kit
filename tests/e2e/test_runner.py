@@ -87,14 +87,16 @@ def test_e2e_timeout_feature() -> None:
         )
 
     # Verify failing scenarios actually failed
-    # On Unix: signal interrupts the step → "failed" in output
+    # On Unix: signal interrupts the step → "... error in" in output
     # On Windows: ThreadTimer detects in after_scenario → "HOOK-ERROR" in output
     for name in failing_scenarios:
         scenario_block = _extract_scenario_block(full_output, name)
         assert scenario_block is not None, f"Could not extract block for '{name}'"
-        assert "failed" in scenario_block.lower() or "HOOK-ERROR" in scenario_block, (
-            f"Scenario '{name}' should have failed but shows no failure:\n{scenario_block}"
-        )
+        assert (
+            "failed" in scenario_block.lower()
+            or "HOOK-ERROR" in scenario_block
+            or "... error in" in scenario_block
+        ), f"Scenario '{name}' should have failed but shows no failure:\n{scenario_block}"
 
 
 def _extract_scenario_block(output: str, scenario_name: str) -> str | None:
