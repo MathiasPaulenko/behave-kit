@@ -148,6 +148,11 @@ def test_all_is_complete() -> None:
         # hooks
         "setup",
         "teardown",
+        "teardown_timeout",
+        # timeout
+        "setup_timeout",
+        "timeout_before_scenario",
+        "timeout_after_scenario",
         # utilities
         "wait_until",
         "get_path",
