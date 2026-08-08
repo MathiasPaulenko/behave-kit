@@ -186,6 +186,30 @@ def test_setup_timeout_negative_raises(ctx: FakeContext) -> None:
         setup_timeout(ctx, default_timeout=-1)
 
 
+def test_setup_timeout_reads_env_var(ctx: FakeContext, monkeypatch) -> None:
+    monkeypatch.setenv("BEHAVE_SCENARIO_TIMEOUT", "25")
+    setup_timeout(ctx)
+    assert ctx._behave_kit_timeout_default == 25.0
+
+
+def test_setup_timeout_env_var_defaults_to_zero(ctx: FakeContext, monkeypatch) -> None:
+    monkeypatch.delenv("BEHAVE_SCENARIO_TIMEOUT", raising=False)
+    setup_timeout(ctx)
+    assert ctx._behave_kit_timeout_default == 0.0
+
+
+def test_setup_timeout_explicit_arg_ignores_env_var(ctx: FakeContext, monkeypatch) -> None:
+    monkeypatch.setenv("BEHAVE_SCENARIO_TIMEOUT", "25")
+    setup_timeout(ctx, default_timeout=30)
+    assert ctx._behave_kit_timeout_default == 30
+
+
+def test_setup_timeout_env_var_negative_raises(ctx: FakeContext, monkeypatch) -> None:
+    monkeypatch.setenv("BEHAVE_SCENARIO_TIMEOUT", "-5")
+    with pytest.raises(ValueError, match="non-negative"):
+        setup_timeout(ctx)
+
+
 # ---------------------------------------------------------------------------
 # timeout_before_scenario / timeout_after_scenario
 # ---------------------------------------------------------------------------

@@ -493,6 +493,14 @@ Feature: Feature-level timeout inherits to all scenarios
 - `@timeout:0` disables the timeout for that scenario.
 - Feature-level tags inherit to all scenarios; scenario tags override feature tags.
 
+You can also set the default via the `BEHAVE_SCENARIO_TIMEOUT` environment
+variable. If you call `setup_timeout(context)` without `default_timeout`, the
+value is read from the environment (default `0`):
+
+```bash
+BEHAVE_SCENARIO_TIMEOUT=30 behave
+```
+
 ## Documentation
 
 Full documentation is available at [mathiaspaulenko.github.io/behave-kit](https://mathiaspaulenko.github.io/behave-kit).

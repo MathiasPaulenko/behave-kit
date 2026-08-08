@@ -36,6 +36,7 @@ Usage in ``environment.py``::
 from __future__ import annotations
 
 import math
+import os
 import signal
 import sys
 import threading
@@ -293,7 +294,7 @@ def timeout_after_scenario(context: Context, scenario: BehaveScenario) -> None:
 
 def setup_timeout(
     context: Context,
-    default_timeout: float = 0,
+    default_timeout: float | None = None,
     *,
     timeout_tag: str = _DEFAULT_TAG,
 ) -> None:
@@ -304,10 +305,14 @@ def setup_timeout(
         default_timeout: Timeout in seconds for all scenarios.
             ``0`` disables the per-scenario timeout (Behave's native
             ``--timeout`` still applies independently).
+            If ``None``, the value is read from the ``BEHAVE_SCENARIO_TIMEOUT``
+            environment variable (default ``0``).
         timeout_tag: Name of the tag used for per-scenario overrides.
             The format is ``@<timeout_tag>:N`` where ``N`` is seconds.
             Default: ``"timeout"`` (i.e. ``@timeout:10``).
     """
+    if default_timeout is None:
+        default_timeout = float(os.environ.get("BEHAVE_SCENARIO_TIMEOUT", "0"))
     if default_timeout < 0:
         raise ValueError(f"default_timeout must be non-negative, got {default_timeout}")
     if not math.isfinite(default_timeout):

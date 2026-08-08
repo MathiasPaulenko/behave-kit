@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-08
+
+### Added
+
+- `setup_timeout(context)` now reads the default timeout from the
+  `BEHAVE_SCENARIO_TIMEOUT` environment variable when `default_timeout` is not
+  provided. An explicit `default_timeout` still takes precedence.
+
 ## [1.4.0] - 2026-08-06
 
 ### Added
@@ -14,8 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `setup_timeout` — configure a default per-scenario timeout on the Behave context.
 - `timeout_before_scenario` / `timeout_after_scenario` — hook functions to start and cancel per-scenario timers.
 - `teardown_timeout` — public teardown function for cleanup in `teardown()`.
-- `@timeout:N` tag support — override the default timeout per scenario or feature. Scenario tags take precedence over feature tags.
+- **Per-scenario timeout** — `@timeout:N` tags override a default, platform-aware (SIGALRM on Unix, threading.Timer on Windows).
 - `@timeout:0` disables the timeout for a specific scenario.
+- Feature-level timeout tags inherit to all scenarios; scenario tags override feature tags.
 - Platform-aware handlers: `signal.SIGALRM` on Unix for immediate interruption, `threading.Timer` on Windows as fallback.
 - New `behave_kit.timeout` module.
 - README, Sphinx docs, and E2E feature coverage for per-scenario timeout.

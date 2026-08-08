@@ -42,6 +42,19 @@ Wire the timeout hooks in your ``environment.py``:
    def after_scenario(context, scenario):
        timeout_after_scenario(context, scenario)
 
+Environment variable
+~~~~~~~~~~~~~~~~~~~~
+
+You can set the default timeout with the ``BEHAVE_SCENARIO_TIMEOUT``
+environment variable. This is useful for CI runners or behave-runner
+integrations that control timeout from the command line::
+
+   BEHAVE_SCENARIO_TIMEOUT=30 behave
+
+If ``setup_timeout(context)`` is called without ``default_timeout``,
+the value is read from the environment. If the variable is not set,
+the default is ``0`` (no timeout).
+
 Tag-based overrides
 -------------------
 
