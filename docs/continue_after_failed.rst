@@ -1,5 +1,5 @@
 Continue After Failed
-====================
+=====================
 
 Control whether scenarios keep executing remaining steps after a step fails.
 

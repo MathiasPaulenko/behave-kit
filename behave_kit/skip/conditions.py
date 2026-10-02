@@ -12,7 +12,15 @@ logger = logging.getLogger("behave_kit.skip.conditions")
 
 
 def is_env(context: Context, env_name: str) -> bool:
-    """True if ``context.config.env == env_name``."""
+    """True if the configured environment name matches ``env_name``.
+
+    Reads ``context.kit_config.env`` when present (set by `load_env_config`);
+    falls back to ``context.config.env`` for setups that put the env name on
+    Behave's own configuration object.
+    """
+    kit_config = getattr(context, "kit_config", None)
+    if kit_config is not None:
+        return getattr(kit_config, "env", None) == env_name
     config = getattr(context, "config", None)
     return getattr(config, "env", None) == env_name
 

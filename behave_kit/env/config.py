@@ -15,7 +15,12 @@ def load_env_config(
     *,
     overrides: dict[str, str] | None = None,
 ) -> KitConfig:
-    """Load ``config_file``, resolve the ``env`` profile, and attach it to ``context.config``."""
+    """Load ``config_file``, resolve the ``env`` profile, and attach it to the context.
+
+    The resolved `KitConfig` is stored on ``context.kit_config`` — Behave's own
+    ``context.config`` (which exposes ``userdata`` and other runner settings) is
+    left untouched.
+    """
     config = KitConfig.from_toml(Path(config_file), env=env, overrides=overrides)
-    context.config = config
+    context.kit_config = config
     return config

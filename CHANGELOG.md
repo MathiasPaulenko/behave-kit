@@ -5,7 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.6.0] - 2026-10-02
+
+### Added
+
+- `teardown_feature(context)` — cleans up FEATURE-scoped fixtures and
+  `@scoped(..., scope=Scope.FEATURE)` attributes; call from `after_feature`.
+- `@parameter_type` and `register_builtin_types()` now register converters with
+  Behave's parse/cfparse matcher, so `{name:Type}` placeholders work in step
+  patterns (e.g. `{user:User}`, `{n:int}`).
+
+### Changed
+
+- `load_env_config()` now stores the resolved `KitConfig` on
+  `context.kit_config` instead of replacing `context.config` — Behave's own
+  `config` object (`userdata`, formatter settings) is no longer clobbered.
+  `env()` and `is_env()` read `kit_config` first and still fall back to
+  `context.config` for compatibility.
+- `setup()` attaches the `FixtureManager` to the public `context.kit_fixtures`
+  (the old `_behave_kit_fixtures` attribute is still read as a fallback) and
+  the suggestions `after_step` hook to `context.kit_suggestions` (call it from
+  `after_step` — Behave hooks cannot be injected).
+- `run_steps()` accepts `context.active_outline` as `dict`, `behave.model.Row`,
+  or any `items()`/`as_dict()`-compatible object.
+
+### Fixed
+
+- `run_steps()` no longer fails inside real Scenario Outlines: Behave exposes
+  the outline row as `behave.model.Row`, which was rejected by the previous
+  `dict`-only validation.
+- `teardown()` is now fault-tolerant: an error in one teardown step (e.g. a
+  Windows `TimeoutError` or a soft-assert `AssertionError`) no longer skips the
+  remaining cleanup, and `continue_after_failed` is always reset.
+- `data_driven` sanitizes any non-identifier column name (dots, leading digits)
+  instead of only hyphens and spaces, and raises `BehaveKitError` for
+  unsalvageable keys instead of a raw `TypeError`.
+- `get_path` supports dicts with integer keys via numeric segments, and its
+  error message no longer breaks on non-string keys.
+- `deep_compare` compares integers exactly (no `float()` overflow on huge ints)
+  and unordered-sequence matching no longer leaks partial `seen` state.
+- `setup_timeout`/`setup` log-level validation no longer mutates the root
+  logger; `setup_timeout` validates `BEHAVE_SCENARIO_TIMEOUT` and numeric
+  arguments with clear `ValueError` messages.
+- `timeout_after_scenario` now reads the original failure from the failed
+  *step* (Behave never sets `scenario.exception`), so a Windows timeout no
+  longer masks the scenario's real exception.
+- `_load_xlsx` now closes the workbook after reading.
+- `KitConfig.from_toml` raises `ConfigError` (not raw `ValueError`) for
+  non-integer `timeouts` values and validates `base_url`/`browser` types.
+- Docs: all step-decorator examples now show the correct order (behave-kit
+  decorators inside `@when`/`@given`/`@then`), `sub_steps.rst` documents the
+  real `SubStepError`/`Row` behaviour, `timeout.rst` describes the Windows
+  fallback accurately, and `docs/conf.py` reads the version from the package.
+- `release.yml`: `workflow_dispatch` no longer fails the tag check, and PyPI
+  publish uses `skip-existing` instead of `continue-on-error` so real publish
+  failures still gate the GitHub Release.
 
 ## [1.5.0] - 2026-08-08
 

@@ -25,8 +25,8 @@ Security updates are provided for the latest minor release series:
 
 | Version | Supported |
 | :--- | :--- |
-| 0.1.x | :white_check_mark: Yes |
-| < 0.1 | :x: No |
+| 1.5.x | :white_check_mark: Yes |
+| < 1.5 | :x: No |
 
 Always upgrade to the latest patch release for the most recent fixes.
 

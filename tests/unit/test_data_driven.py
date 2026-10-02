@@ -77,6 +77,21 @@ def test_data_driven_returns_last_result(tmp_path: Path) -> None:
     assert result == 20
 
 
+def test_data_driven_sanitizes_non_identifier_columns(tmp_path: Path) -> None:
+    """Columns like 'a.b' or '9lives' become valid Python identifiers."""
+    csv_file = tmp_path / "data.csv"
+    csv_file.write_text("a.b,9lives\nx,y\n", encoding="utf-8")
+
+    calls: list[dict[str, str]] = []
+
+    @data_driven(csv_file)
+    def step(context: object, **kwargs: str) -> None:
+        calls.append(kwargs)
+
+    step(SimpleNamespace())
+    assert calls[0] == {"a_b": "x", "_9lives": "y"}
+
+
 def test_data_driven_empty_file_raises(tmp_path: Path) -> None:
     csv_file = tmp_path / "empty.csv"
     csv_file.write_text("username,password\n", encoding="utf-8")

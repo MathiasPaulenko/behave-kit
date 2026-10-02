@@ -43,6 +43,12 @@ def _load_csv(path: Path) -> list[dict[str, Any]]:
             cause=exc,
             suggestion="Check the file uses valid CSV syntax and encoding",
         ) from exc
+    except UnicodeDecodeError as exc:
+        raise DataLoadError(
+            f"Cannot read CSV '{path}': file is not valid UTF-8",
+            cause=exc,
+            suggestion="Re-encode the file as UTF-8",
+        ) from exc
     except OSError as exc:
         raise DataLoadError(
             f"Cannot read CSV '{path}': {exc}",
@@ -61,6 +67,12 @@ def _load_json(path: Path) -> dict[str, Any] | list[Any]:
             f"Cannot parse JSON '{path}': {exc}",
             cause=exc,
             suggestion="Check the file is valid JSON",
+        ) from exc
+    except UnicodeDecodeError as exc:
+        raise DataLoadError(
+            f"Cannot read JSON '{path}': file is not valid UTF-8",
+            cause=exc,
+            suggestion="Re-encode the file as UTF-8",
         ) from exc
     except OSError as exc:
         raise DataLoadError(
@@ -93,6 +105,12 @@ def _load_yaml(path: Path) -> dict[str, Any] | list[Any]:
             f"Cannot parse YAML '{path}': {exc}",
             cause=exc,
             suggestion="Check the file is valid YAML",
+        ) from exc
+    except UnicodeDecodeError as exc:
+        raise DataLoadError(
+            f"Cannot read YAML '{path}': file is not valid UTF-8",
+            cause=exc,
+            suggestion="Re-encode the file as UTF-8",
         ) from exc
     except OSError as exc:
         raise DataLoadError(
@@ -132,19 +150,22 @@ def _load_xlsx(path: Path) -> list[dict[str, Any]]:
             suggestion="Check the file is a valid .xlsx workbook",
         ) from exc
 
-    sheet = workbook.active
-    if sheet is None:
-        raise DataLoadError(
-            f"Excel workbook '{path}' has no active worksheet",
-            suggestion="Create a workbook with at least one visible worksheet",
-        )
-
     try:
-        rows_iter = sheet.iter_rows(values_only=True)
-        headers = [str(header) for header in next(rows_iter)]
-    except StopIteration:
-        return []
-    return [dict(zip(headers, row, strict=False)) for row in rows_iter]
+        sheet = workbook.active
+        if sheet is None:
+            raise DataLoadError(
+                f"Excel workbook '{path}' has no active worksheet",
+                suggestion="Create a workbook with at least one visible worksheet",
+            )
+
+        try:
+            rows_iter = sheet.iter_rows(values_only=True)
+            headers = [str(header) for header in next(rows_iter)]
+        except StopIteration:
+            return []
+        return [dict(zip(headers, row, strict=False)) for row in rows_iter]
+    finally:
+        workbook.close()
 
 
 _LOADERS: dict[str, Callable[[Path], dict[str, Any] | list[Any]]] = {

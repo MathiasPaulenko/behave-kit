@@ -54,6 +54,20 @@ def test_load_data_wraps_json_decode_error(tmp_path: Path) -> None:
         load_data(path)
 
 
+def test_load_data_wraps_non_utf8_csv(tmp_path: Path) -> None:
+    path = tmp_path / "latin1.csv"
+    path.write_bytes("nombre\nJosé\n".encode("latin-1"))
+    with pytest.raises(DataLoadError, match="not valid UTF-8"):
+        load_data(path)
+
+
+def test_load_data_wraps_non_utf8_json(tmp_path: Path) -> None:
+    path = tmp_path / "latin1.json"
+    path.write_bytes('{"k": "José"}'.encode("latin-1"))
+    with pytest.raises(DataLoadError, match="not valid UTF-8"):
+        load_data(path)
+
+
 def test_load_data_wraps_directory_path(tmp_path: Path) -> None:
     with pytest.raises(DataLoadError, match="not found or is not a file"):
         load_data(tmp_path)

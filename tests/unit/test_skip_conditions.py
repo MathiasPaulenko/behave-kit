@@ -60,3 +60,20 @@ def test_is_os_with_empty_string_returns_false() -> None:
 def test_is_env_with_no_config_returns_false_for_any_env() -> None:
     context = SimpleNamespace()
     assert is_env(context, "") is False
+
+
+def test_is_env_reads_kit_config() -> None:
+    """load_env_config stores its KitConfig on context.kit_config."""
+    context = SimpleNamespace(kit_config=SimpleNamespace(env="staging"))
+    assert is_env(context, "staging") is True
+    assert is_env(context, "production") is False
+
+
+def test_is_env_kit_config_takes_priority_over_config() -> None:
+    """When kit_config exists it is authoritative — config.env is ignored."""
+    context = SimpleNamespace(
+        kit_config=SimpleNamespace(env="staging"),
+        config=SimpleNamespace(env="production"),
+    )
+    assert is_env(context, "staging") is True
+    assert is_env(context, "production") is False

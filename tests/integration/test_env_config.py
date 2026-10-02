@@ -27,14 +27,21 @@ def test_load_env_config_attaches_kit_config(toml_path: Path) -> None:
     context = SimpleNamespace()
     config = load_env_config(context, env="staging", config_file=toml_path)
     assert isinstance(config, KitConfig)
-    assert context.config is config
-    assert context.config.base_url == "https://staging.example.com"
+    assert context.kit_config is config
+    assert context.kit_config.base_url == "https://staging.example.com"
+
+
+def test_load_env_config_does_not_clobber_behave_config(toml_path: Path) -> None:
+    behave_config = SimpleNamespace(userdata={"key": "value"})
+    context = SimpleNamespace(config=behave_config)
+    load_env_config(context, env="staging", config_file=toml_path)
+    assert context.config is behave_config
 
 
 def test_load_env_config_applies_overrides(toml_path: Path) -> None:
     context = SimpleNamespace()
     load_env_config(context, env="staging", config_file=toml_path, overrides={"browser": "firefox"})
-    assert context.config.browser == "firefox"
+    assert context.kit_config.browser == "firefox"
 
 
 def test_env_falls_back_to_context_config(toml_path: Path) -> None:

@@ -12,7 +12,7 @@ def before_all(context: object) -> None:
     # Wire soft asserts at the global level
     use_soft_asserts(context)
     # Wire fixtures manager
-    context._behave_kit_fixtures = FixtureManager()
+    context.kit_fixtures = FixtureManager()
     # Set env on the existing config so skip_if_env can read it
     config = getattr(context, "config", None)
     if config is not None:
@@ -44,7 +44,7 @@ def after_scenario(context: object, scenario: object) -> None:
     # Tear down class-based step instances (calls teardown() on each)
     teardown_steps(context)
     # Tear down fixtures
-    manager = getattr(context, "_behave_kit_fixtures", None)
+    manager = getattr(context, "kit_fixtures", None)
     if manager is not None:
         manager.teardown_scenario(context)
     # Reset continue_after_failed_step after each scenario

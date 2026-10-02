@@ -6,8 +6,8 @@ behave-kit supports three adoption levels — pick the one that fits your team.
 Level 1: Automatic wiring
 -------------------------
 
-Add two lines to your ``environment.py`` and every feature is wired
-automatically:
+Add ``setup()``/``teardown()`` to your ``environment.py`` to wire soft
+assertions, context dump on failure, and scoped cleanup automatically:
 
 .. code-block:: python
 
@@ -19,8 +19,19 @@ automatically:
    def after_scenario(context, scenario):
        teardown(context)
 
-That's it.  Soft assertions, context dump on failure, step suggestions,
-fixtures, and scoped cleanup are all active.
+Behave hooks cannot be injected, so two calls stay explicit — fixtures and
+undefined-step suggestions:
+
+.. code-block:: python
+
+   def before_scenario(context, scenario):
+       context.kit_fixtures.setup_for_scenario(context, scenario)
+
+   def after_step(context, step):
+       context.kit_suggestions(context, step)
+
+   def after_feature(context, feature):
+       teardown_feature(context)  # FEATURE-scoped fixtures + attributes
 
 Level 2: Cherry-pick
 --------------------

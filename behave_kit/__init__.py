@@ -9,7 +9,7 @@ Three adoption levels:
 
 from __future__ import annotations
 
-__version__ = "1.5.0"
+__version__ = "1.6.0"
 
 from behave_kit._core.types import Scope
 from behave_kit.assertions import (
@@ -39,7 +39,7 @@ from behave_kit.continue_after_failed import continue_after_failed, continue_on_
 from behave_kit.data import DataCache, data_provider, get_provider, load_data, load_examples_from
 from behave_kit.env import KitConfig, env, env_snapshot
 from behave_kit.fixtures import fixture
-from behave_kit.hooks import setup, teardown, teardown_timeout
+from behave_kit.hooks import setup, teardown, teardown_feature, teardown_timeout
 from behave_kit.skip import skip_if_env, skip_if_missing, skip_if_no_browser, skip_on_os
 from behave_kit.steps import (
     convert,
@@ -113,6 +113,7 @@ __all__ = [
     # hooks
     "setup",
     "teardown",
+    "teardown_feature",
     "teardown_timeout",
     # timeout
     "setup_timeout",

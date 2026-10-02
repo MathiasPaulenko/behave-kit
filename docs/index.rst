@@ -76,13 +76,25 @@ Three adoption levels
 
 .. code-block:: python
 
-   from behave_kit import setup, teardown
+   from behave_kit import setup, teardown, teardown_feature
 
    def before_all(context):
        setup(context, env="staging")
 
+   def before_scenario(context, scenario):
+       context.kit_fixtures.setup_for_scenario(context, scenario)
+
+   def after_step(context, step):
+       context.kit_suggestions(context, step)
+
    def after_scenario(context, scenario):
        teardown(context)
+
+   def before_feature(context, feature):
+       context.kit_fixtures.setup_for_feature(context, feature)
+
+   def after_feature(context, feature):
+       teardown_feature(context)
 
 **Level 2 — Cherry-pick:**
 
@@ -122,4 +134,4 @@ With optional extras:
 License
 -------
 
-MIT — see `LICENSE <https://github.com/MathiasPaulenko/behave-kit/blob/main/LICENSE>`_.
+MIT — see `LICENSE <https://github.com/MathiasPaulenko/behave-kit/blob/master/LICENSE>`_.

@@ -3,8 +3,13 @@
 Behave has no `step.skip()` API. The idiomatic way to skip a step (and have
 Behave report it as skipped, not failed) is to raise `unittest.SkipTest`
 from within the step. Every decorator here checks its condition at call
-time, not at decoration time, so `context` (and `context.config`) can be
-inspected.
+time, not at decoration time, so `context` (and `context.kit_config`) can
+be inspected.
+
+Place these decorators *inside* (below) the Behave `@given`/`@when`/`@then`
+decorator — Behave registers whatever object it receives at decoration
+time, so the outermost decorator must be the Behave one for the wrapper to
+actually run.
 """
 
 from __future__ import annotations
@@ -34,7 +39,7 @@ def _validate_str(value: object, label: str) -> str:
 def skip_if_env(
     env_name: str,
 ) -> Callable[[Callable[Concatenate[Context, P], R]], Callable[Concatenate[Context, P], R]]:
-    """Skip the step when ``context.config.env == env_name``."""
+    """Skip the step when the configured env (``context.kit_config.env``) matches."""
     _validate_str(env_name, "skip_if_env")
 
     def decorator(

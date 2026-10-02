@@ -13,21 +13,28 @@ Usage in ``environment.py``::
 
     def after_scenario(context, scenario):
         teardown(context)
+
+    def after_feature(context, feature):
+        teardown_feature(context)
 """
 
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from behave_kit._core.errors import BehaveKitError
 from behave_kit._core.logging import get_logger
-from behave_kit._core.types import Context
+from behave_kit._core.types import Context, Scope
+
+if TYPE_CHECKING:
+    from behave_kit.fixtures import FixtureManager
 
 logger = get_logger("hooks")
 
 _WIRED_KEY = "_behave_kit_wired"
 _FIXTURES_KEY = "_behave_kit_fixtures"
-_SUGGESTIONS_KEY = "_behave_kit_suggestions"
 
 
 def _get_timeout_key() -> str:
@@ -37,14 +44,13 @@ def _get_timeout_key() -> str:
 
 
 def _validate_log_level(level: str) -> None:
-    try:
-        logging.getLogger().setLevel(level)
-    except (TypeError, ValueError) as exc:
-        raise BehaveKitError(
-            f"Invalid log_level '{level}'",
-            cause=exc,
-            suggestion="Use a logging level name such as DEBUG, INFO, WARNING, ERROR, or CRITICAL",
-        ) from exc
+    """Validate ``level`` without mutating any logger as a side effect."""
+    if isinstance(level, str) and level.upper() in logging.getLevelNamesMapping():
+        return
+    raise BehaveKitError(
+        f"Invalid log_level '{level}'",
+        suggestion="Use a logging level name such as DEBUG, INFO, WARNING, ERROR, or CRITICAL",
+    )
 
 
 def _wire_env_config(context: Context, env: str, config_file: str) -> None:
@@ -66,15 +72,21 @@ def _wire_context_dump(context: Context) -> None:
 def _wire_suggestions(context: Context) -> None:
     from behave_kit.steps.suggestions import setup_suggestions
 
-    hook = setup_suggestions(context)
-    setattr(context, _SUGGESTIONS_KEY, hook)
+    context.kit_suggestions = setup_suggestions(context)
+
+
+def _get_fixture_manager(context: Context) -> FixtureManager | None:
+    """Return the wired `FixtureManager`, checking the public name first."""
+    manager = getattr(context, "kit_fixtures", None)
+    if manager is None:
+        manager = getattr(context, _FIXTURES_KEY, None)
+    return manager
 
 
 def _wire_fixtures(context: Context) -> None:
     from behave_kit.fixtures import FixtureManager
 
-    manager = FixtureManager()
-    setattr(context, _FIXTURES_KEY, manager)
+    context.kit_fixtures = FixtureManager()
 
 
 def _teardown_timeout(context: Context) -> None:
@@ -100,6 +112,12 @@ def setup(
     Idempotent: calling twice is a no-op.  Each module is wired independently
     in try/except — a failure in one does not prevent the others.
 
+    Wired state is exposed under public attributes — ``context.kit_config``
+    (resolved `KitConfig`, when ``env`` is given), ``context.kit_fixtures``
+    (the `FixtureManager`) and ``context.kit_suggestions`` (an
+    ``after_step`` hook for undefined-step hints) — leaving Behave's own
+    ``context.config`` untouched.
+
     Args:
         context: The Behave context object.
         env: Optional environment name for profile-based configuration.
@@ -111,7 +129,7 @@ def setup(
             leaves the current setting unchanged.
     """
     _validate_log_level(log_level)
-    logging.getLogger("behave_kit").setLevel(log_level)
+    logging.getLogger("behave_kit").setLevel(log_level.upper())
     if hasattr(context, _WIRED_KEY):
         return
 
@@ -169,7 +187,7 @@ def teardown_timeout(context: Context) -> None:
 
 
 def _teardown_fixtures(context: Context) -> None:
-    manager = getattr(context, _FIXTURES_KEY, None)
+    manager = _get_fixture_manager(context)
     if manager is not None:
         manager.teardown_scenario(context)
 
@@ -215,22 +233,55 @@ def teardown(context: Context) -> None:
     Safe to call without a prior ``setup()`` (no-op).  Also tears down any
     class-based step instances created during the scenario, even if
     ``setup()`` was not called.
+
+    Fault-tolerant: every teardown step runs even if an earlier one fails —
+    a failing step never prevents the rest of the cleanup.  The first error
+    raised is re-raised once all steps have run.
     """
     wired: set[str] = getattr(context, _WIRED_KEY, set())
+    first_error: BaseException | None = None
+
+    def _run(step: Callable[[Context], None]) -> None:
+        nonlocal first_error
+        try:
+            step(context)
+        except Exception as exc:
+            if first_error is None:
+                first_error = exc
+            else:
+                logger.exception("Error during teardown step %s", step.__name__)
 
     if "fixtures" in wired:
-        _teardown_fixtures(context)
-    _teardown_timeout(context)
-    _cleanup_scoped(context)
+        _run(_teardown_fixtures)
+    _run(_teardown_timeout)
+    _run(_cleanup_scoped)
     # Class-based step instances are torn down regardless of wiring,
     # since they may be used with cherry-picked imports only.
-    _teardown_step_instances(context)
+    _run(_teardown_step_instances)
     if "dump" in wired:
-        _dump_if_failed(context)
+        _run(_dump_if_failed)
     if "soft" in wired:
-        _report_soft_asserts(context)
+        _run(_report_soft_asserts)
     if "continue_after_failed" in wired:
-        _reset_continue_after_failed(context)
+        _run(_reset_continue_after_failed)
+
+    if first_error is not None:
+        raise first_error
+
+
+def teardown_feature(context: Context) -> None:
+    """Clean up feature-scoped state.  Call from ``after_feature``.
+
+    Runs FEATURE-scoped fixture teardowns and removes attributes tracked
+    with ``@scoped(..., scope=Scope.FEATURE)``.  Safe to call without a
+    prior ``setup()`` (no-op for whatever is not present).
+    """
+    from behave_kit.context.scoped import cleanup_scoped
+
+    manager = _get_fixture_manager(context)
+    if manager is not None:
+        manager.teardown_feature(context)
+    cleanup_scoped(context, Scope.FEATURE)
 
 
 def _teardown_step_instances(context: Context) -> None:

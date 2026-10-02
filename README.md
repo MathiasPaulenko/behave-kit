@@ -3,7 +3,7 @@
 The Swiss-army knife for [Behave](https://github.com/behave/behave) — soft assertions, typed context, conditional skip, environment management, fixtures and more.
 
 [![CI](https://github.com/MathiasPaulenko/behave-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/MathiasPaulenko/behave-kit/actions/workflows/ci.yml)
-[![Coverage](https://codecov.io/gh/MathiasPaulenko/behave-kit/branch/main/graph/badge.svg)](https://codecov.io/gh/MathiasPaulenko/behave-kit)
+[![Coverage](https://codecov.io/gh/MathiasPaulenko/behave-kit/branch/master/graph/badge.svg)](https://codecov.io/gh/MathiasPaulenko/behave-kit)
 [![PyPI](https://img.shields.io/pypi/v/behave-kit.svg)](https://pypi.org/project/behave-kit/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -60,15 +60,31 @@ pip install "behave-kit[yaml,excel,dotenv]"
 Add two lines to your `environment.py` and every feature is wired automatically:
 
 ```python
-from behave_kit import setup, teardown
+from behave_kit import setup, teardown, teardown_feature
 
 
 def before_all(context):
     setup(context, env="staging")
 
 
+def before_scenario(context, scenario):
+    context.kit_fixtures.setup_for_scenario(context, scenario)
+
+
+def after_step(context, step):
+    context.kit_suggestions(context, step)  # "did you mean?" hints
+
+
 def after_scenario(context, scenario):
-    teardown(context)
+    teardown(context)  # runs fixture teardowns, scoped cleanup, soft-assert report
+
+
+def before_feature(context, feature):
+    context.kit_fixtures.setup_for_feature(context, feature)
+
+
+def after_feature(context, feature):
+    teardown_feature(context)  # FEATURE-scoped fixtures and attributes
 ```
 
 ### Level 2 — Cherry-pick
@@ -138,25 +154,29 @@ Skip steps by environment, OS, or missing dependency:
 from behave_kit import skip_if_env, skip_if_no_browser, skip_on_os, skip_if_missing
 
 
-@skip_if_env("production")
 @when("I run the staging-only step")
+@skip_if_env("production")
 def step(context): ...
 
 
-@skip_if_no_browser
 @when("I open the browser")
+@skip_if_no_browser
 def step(context): ...
 
 
-@skip_on_os("windows")
 @when("I run the unix-only step")
+@skip_on_os("windows")
 def step(context): ...
 
 
-@skip_if_missing("selenium")
 @when("I use selenium")
+@skip_if_missing("selenium")
 def step(context): ...
 ```
+
+> **Note:** behave-kit step decorators must be placed *inside* (below) the
+> Behave `@given`/`@when`/`@then` decorator — only then is the wrapped
+> function what Behave registers.
 
 ### Environment variables
 
@@ -220,7 +240,8 @@ from behave_kit import dump_context_on_failure
 
 ```python
 from behave_kit import setup_suggestions
-# Wired automatically by setup()
+# setup() attaches the hook as context.kit_suggestions;
+# call it from after_step(context, step)
 ```
 
 ### Scoped attributes
@@ -231,8 +252,8 @@ Automatic cleanup of context attributes per scenario:
 from behave_kit import scoped
 
 
-@scoped("driver")
 @when("I start the driver")
+@scoped("driver")
 def step(context):
     context.driver = start_driver()
 
@@ -246,10 +267,11 @@ Run a step only when a condition holds:
 
 ```python
 from behave_kit import when_if
+from behave_kit.skip.conditions import is_env
 
 
-@when_if(lambda ctx: ctx.config.env == "staging")
 @when("I run the staging-only step")
+@when_if(lambda ctx: is_env(ctx, "staging"))
 def step(context): ...
 ```
 
@@ -264,6 +286,12 @@ from behave_kit import parameter_type
 @parameter_type("User", r"[\w.]+@[\w.]+\.[a-z]+")
 def parse_user(text):
     return User(name=text)
+
+
+@when('I log in as "{user:User}"')
+def step(context, user):
+    # user is a User instance — converted automatically
+    context.current_user = user
 ```
 
 ### Class-based steps
@@ -334,8 +362,8 @@ Run a step once per row of a data file, with column names injected as keyword ar
 from behave_kit import data_driven
 
 
-@data_driven("tests/data/users.csv")
 @when("I login as {username}")
+@data_driven("tests/data/users.csv")
 def step(context, username=None, password=None):
     login(username, password)
 
@@ -377,8 +405,8 @@ from behave_kit import assert_under, timed
 assert_under(2.0, lambda: client.get("/health"))
 
 
-@timed(1.5)
 @when("I fetch the data")
+@timed(1.5)
 def step(context): ...
 ```
 
@@ -489,7 +517,8 @@ Feature: Feature-level timeout inherits to all scenarios
 ```
 
 - **Unix**: uses `signal.SIGALRM` for immediate interruption.
-- **Windows**: uses `threading.Timer` fallback (detected after step finishes).
+- **Windows**: uses `threading.Timer` fallback — it cannot interrupt running
+  code, so the timeout is detected and raised when the scenario ends.
 - `@timeout:0` disables the timeout for that scenario.
 - Feature-level tags inherit to all scenarios; scenario tags override feature tags.
 

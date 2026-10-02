@@ -36,7 +36,7 @@ def test_teardown_only_wired_modules() -> None:
 def test_teardown_calls_fixture_teardown() -> None:
     context = SimpleNamespace()
     setup(context)
-    manager = context._behave_kit_fixtures
+    manager = context.kit_fixtures
     with mock.patch.object(manager, "teardown_scenario") as fixture_mock:
         teardown(context)
         fixture_mock.assert_called_once_with(context)
@@ -87,7 +87,7 @@ def test_teardown_order_fixtures_before_scoped() -> None:
     context = SimpleNamespace()
     setup(context)
     call_order: list[str] = []
-    manager = context._behave_kit_fixtures
+    manager = context.kit_fixtures
     with (
         mock.patch.object(
             manager,
@@ -109,3 +109,96 @@ def test_teardown_order_fixtures_before_scoped() -> None:
     ):
         teardown(context)
     assert call_order == ["fixtures", "scoped", "dump", "soft"]
+
+
+# ---------------------------------------------------------------------------
+# Teardown resilience and feature scope
+# ---------------------------------------------------------------------------
+
+
+def test_teardown_runs_all_steps_despite_intermediate_failure() -> None:
+    """A TimeoutError mid-teardown must not skip later cleanup steps."""
+    from behave.model import Scenario
+
+    original = getattr(Scenario, "continue_after_failed_step", False)
+    try:
+        context = SimpleNamespace()
+        setup(context, continue_after_failed=True)
+        call_order: list[str] = []
+        with (
+            mock.patch(
+                "behave_kit.hooks._teardown_timeout",
+                side_effect=TimeoutError("timed out"),
+            ),
+            mock.patch(
+                "behave_kit.context.scoped.cleanup_scoped",
+                side_effect=lambda ctx: call_order.append("scoped"),
+            ),
+            mock.patch(
+                "behave_kit.hooks._report_soft_asserts",
+                side_effect=lambda ctx: call_order.append("soft"),
+            ),
+            pytest.raises(TimeoutError, match="timed out"),
+        ):
+            teardown(context)
+        assert "scoped" in call_order
+        assert "soft" in call_order
+        assert Scenario.continue_after_failed_step is False
+    finally:
+        Scenario.continue_after_failed_step = original
+
+
+def test_teardown_soft_failure_does_not_skip_continue_after_failed_reset() -> None:
+    from behave.model import Scenario
+
+    original = getattr(Scenario, "continue_after_failed_step", False)
+    try:
+        context = SimpleNamespace()
+        setup(context, continue_after_failed=True)
+        context._behave_kit_soft.assert_soft(False, "intentional failure")
+        with pytest.raises(AssertionError):
+            teardown(context)
+        assert Scenario.continue_after_failed_step is False
+    finally:
+        Scenario.continue_after_failed_step = original
+
+
+def test_teardown_feature_cleans_feature_scoped_attributes() -> None:
+    from behave_kit._core.types import Scope
+    from behave_kit.context.scoped import scoped
+    from behave_kit.hooks import teardown_feature
+
+    context = SimpleNamespace()
+
+    @scoped("database", scope=Scope.FEATURE)
+    def step(ctx: SimpleNamespace) -> None:
+        ctx.database = "postgres"
+
+    step(context)
+    teardown_feature(context)
+    assert not hasattr(context, "database")
+
+
+def test_teardown_feature_runs_fixture_teardowns() -> None:
+    from behave_kit._core.types import Scope
+    from behave_kit.fixtures import fixture
+    from behave_kit.hooks import teardown_feature
+
+    calls: list[str] = []
+
+    @fixture("teardown_feature_test", scope=Scope.FEATURE)
+    def feat_fixture(context: SimpleNamespace) -> tuple:
+        def setup_fn(ctx: SimpleNamespace) -> None:
+            calls.append("setup")
+
+        def teardown_fn(ctx: SimpleNamespace) -> None:
+            calls.append("teardown")
+
+        return setup_fn, teardown_fn
+
+    context = SimpleNamespace()
+    setup(context)
+    feature = SimpleNamespace(tags=["teardown_feature_test"])
+    context.kit_fixtures.setup_for_feature(context, feature)
+    teardown_feature(context)
+    assert calls == ["setup", "teardown"]

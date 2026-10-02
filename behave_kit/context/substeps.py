@@ -40,6 +40,29 @@ logger = get_logger("context.substeps")
 _OUTLINE_PATTERN = re.compile(r"<([^>]+)>")
 
 
+def _outline_to_dict(active_outline: object) -> dict[str, object]:
+    """Normalize ``context.active_outline`` to a plain dict.
+
+    Behave exposes the current Scenario Outline row as a
+    ``behave.model.Row`` (dict-like: ``row["name"]``, ``items()``,
+    ``as_dict()``), not a plain dict.  Plain dicts and any mapping or
+    ``items()``-compatible object are also accepted for tests and
+    custom runners.
+    """
+    if isinstance(active_outline, dict):
+        return active_outline
+    items = getattr(active_outline, "items", None)
+    if callable(items):
+        return dict(items())
+    as_dict = getattr(active_outline, "as_dict", None)
+    if callable(as_dict):
+        return dict(as_dict())
+    raise SubStepError(
+        f"active_outline must be a dict or behave.model.Row, got {type(active_outline).__name__}",
+        suggestion="Ensure context.active_outline is set from a Scenario Outline row",
+    )
+
+
 def _substitute_outline_vars(context: Context, steps_text: str) -> str:
     """Replace ``<placeholder>`` variables from ``context.active_outline``.
 
@@ -48,29 +71,23 @@ def _substitute_outline_vars(context: Context, steps_text: str) -> str:
     returned unchanged.
 
     Raises:
-        SubStepError: If ``active_outline`` is present but not a dict, or
+        SubStepError: If ``active_outline`` cannot be read as a mapping, or
             if a ``<placeholder>`` is not found in the outline.
     """
     active_outline = getattr(context, "active_outline", None)
     if not active_outline:
         return steps_text
 
-    if not isinstance(active_outline, dict):
-        raise SubStepError(
-            f"active_outline must be a dict, got {type(active_outline).__name__}",
-            suggestion="Ensure context.active_outline is set from a Scenario Outline row",
-        )
+    outline = _outline_to_dict(active_outline)
 
     def _replace(match: re.Match[str]) -> str:
         var_name = match.group(1)
-        if var_name not in active_outline:
+        if var_name not in outline:
             raise SubStepError(
                 f"Outline variable '<{var_name}>' not found in active outline",
-                suggestion=(
-                    f"Available variables: {', '.join(sorted(active_outline.keys())) or '(none)'}"
-                ),
+                suggestion=(f"Available variables: {', '.join(sorted(outline)) or '(none)'}"),
             )
-        return str(active_outline[var_name])
+        return str(outline[var_name])
 
     return _OUTLINE_PATTERN.sub(_replace, steps_text)
 

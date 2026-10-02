@@ -1,6 +1,6 @@
 """`env()` — read environment variables with validation and type conversion.
 
-Falls back to the `KitConfig` attached to `context.config` (see
+Falls back to the `KitConfig` attached to `context.kit_config` (see
 `behave_kit.env.config.load_env_config`) when the variable is not present
 in `os.environ`. Loads a `.env` file once via `python-dotenv` if installed.
 """
@@ -105,11 +105,11 @@ def _convert(raw: object, var_type: type) -> Any:
 def _from_config(context: Context | None, key: str) -> object | None:
     if context is None:
         return None
-    config = getattr(context, "config", None)
-    if config is None:
-        return None
-    raw_config = getattr(config, "raw", None) or {}
-    return raw_config.get(key)
+    for attr in ("kit_config", "config"):
+        raw_config = getattr(getattr(context, attr, None), "raw", None)
+        if raw_config and key in raw_config:
+            return raw_config[key]  # type: ignore[no-any-return]
+    return None
 
 
 @overload
@@ -148,7 +148,7 @@ def env(
 ) -> Any:
     """Read environment variable ``key``, converted to ``var_type``.
 
-    Resolution order: ``os.environ`` -> ``context.config.raw`` (if
+    Resolution order: ``os.environ`` -> ``context.kit_config.raw`` (if
     ``context`` is given) -> ``default`` -> `EnvVarError` (if ``required``).
     """
     if not key:

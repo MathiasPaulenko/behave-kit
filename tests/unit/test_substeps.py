@@ -45,6 +45,25 @@ class _FakeContext:
 # ---------------------------------------------------------------------------
 
 
+def test_substitute_accepts_real_behave_row() -> None:
+    """Regression: behave sets active_outline to a behave.model.Row, not dict."""
+    from behave.model import Row
+
+    row = Row(["username", "city"], ["admin", "Madrid"])
+    ctx = _FakeContext(active_outline=row)  # type: ignore[arg-type]
+    text = "Given I log in as <username> in <city>"
+    assert _substitute_outline_vars(ctx, text) == "Given I log in as admin in Madrid"
+
+
+def test_run_steps_substitutes_real_behave_row() -> None:
+    from behave.model import Row
+
+    row = Row(["user"], ["admin"])
+    ctx = _FakeContext(feature=object(), active_outline=row)  # type: ignore[arg-type]
+    run_steps(ctx, "Given I log in as <user>")
+    assert ctx.execute_calls == ["Given I log in as admin"]
+
+
 def test_substitute_no_active_outline_returns_unchanged() -> None:
     ctx = _FakeContext(active_outline=None)
     text = "Given I see <username>"
@@ -281,14 +300,14 @@ def test_run_steps_whitespace_only_raises() -> None:
 def test_substitute_non_dict_active_outline_raises() -> None:
     """active_outline set to a list should raise SubStepError."""
     ctx = _FakeContext(active_outline=["a", "b"])  # type: ignore[arg-type]
-    with pytest.raises(SubStepError, match="must be a dict"):
+    with pytest.raises(SubStepError, match="must be a dict or behave.model.Row"):
         _substitute_outline_vars(ctx, "Given <a>")
 
 
 def test_substitute_non_dict_active_outline_string_raises() -> None:
     """active_outline set to a string should raise SubStepError."""
     ctx = _FakeContext(active_outline="not a dict")  # type: ignore[arg-type]
-    with pytest.raises(SubStepError, match="must be a dict"):
+    with pytest.raises(SubStepError, match="must be a dict or behave.model.Row"):
         _substitute_outline_vars(ctx, "Given <a>")
 
 

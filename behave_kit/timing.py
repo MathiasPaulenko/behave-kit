@@ -68,8 +68,8 @@ def timed(
 
     Usage::
 
-        @timed(2.0)
         @when("I fetch the data")
+        @timed(2.0)
         def step(context): ...
 
     Raises:

@@ -12,11 +12,10 @@ Platform notes
 - **Unix** (Linux, macOS): uses ``signal.SIGALRM`` for immediate
   interruption of the main thread.
 - **Windows**: ``signal.SIGALRM`` is unavailable, so a
-  ``threading.Timer`` fallback is used.  This cannot interrupt
-  CPU-bound code — the timeout is detected after the current step
-  finishes.  I/O-bound code (``time.sleep``, socket reads, etc.) is
-  interrupted promptly because the timer callback sets a flag that
-  ``__exit__`` checks.
+  ``threading.Timer`` fallback is used.  It cannot interrupt running
+  code — the timer only sets a flag that is checked when the scenario
+  ends, so a timed-out scenario runs to completion and then fails with
+  ``TimeoutError``.
 
 Usage in ``environment.py``::
 
@@ -128,10 +127,8 @@ class SignalTimeoutHandler:
 class ThreadTimeoutHandler:
     """Windows fallback timeout handler using ``threading.Timer``.
 
-    Cannot interrupt CPU-bound code.  The timeout is detected in
-    ``__exit__`` after the wrapped block finishes.  I/O-bound code
-    that checks for interrupts (e.g. ``time.sleep``) may be interrupted
-    sooner.
+    Cannot interrupt running code — the timeout is detected in
+    ``__exit__`` when the wrapped block (the scenario) finishes.
     """
 
     def __init__(self, timeout: float) -> None:
@@ -273,9 +270,16 @@ def timeout_after_scenario(context: Context, scenario: BehaveScenario) -> None:
     handler = getattr(context, _TIMEOUT_HANDLER_KEY, None)
     if handler is None:
         return
-    # Pass the scenario's existing exception (if any) to the handler
-    # so it doesn't mask the original failure with a TimeoutError.
-    exc_info = getattr(scenario, "exception", None)
+    # Pass an existing exception (if any) to the handler so it doesn't
+    # mask the original failure with a TimeoutError.  Behave stores it on
+    # the failed Step, not on the Scenario — scenario.exception stays None.
+    exc_info: BaseException | None = None
+    for step in getattr(scenario, "steps", None) or []:
+        exc_info = getattr(step, "exception", None)
+        if exc_info is not None:
+            break
+    if exc_info is None:
+        exc_info = getattr(scenario, "exception", None)
     exc_type: type[BaseException] | None = None
     exc_val: BaseException | None = None
     if exc_info is not None and isinstance(exc_info, BaseException):
@@ -312,7 +316,16 @@ def setup_timeout(
             Default: ``"timeout"`` (i.e. ``@timeout:10``).
     """
     if default_timeout is None:
-        default_timeout = float(os.environ.get("BEHAVE_SCENARIO_TIMEOUT", "0"))
+        raw = os.environ.get("BEHAVE_SCENARIO_TIMEOUT", "0")
+        try:
+            default_timeout = float(raw)
+        except ValueError as exc:
+            raise ValueError(f"BEHAVE_SCENARIO_TIMEOUT must be a number, got {raw!r}") from exc
+    else:
+        try:
+            default_timeout = float(default_timeout)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"default_timeout must be a number, got {default_timeout!r}") from exc
     if default_timeout < 0:
         raise ValueError(f"default_timeout must be non-negative, got {default_timeout}")
     if not math.isfinite(default_timeout):

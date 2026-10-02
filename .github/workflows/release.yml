@@ -52,6 +52,8 @@ jobs:
           echo "Project version: $VERSION"
 
       - name: Verify tag matches version
+        # Only tag pushes carry a version ref; workflow_dispatch runs on a branch.
+        if: github.ref_type == 'tag'
         run: |
           VERSION="${{ steps.read.outputs.version }}"
           TAG="${GITHUB_REF_NAME:-manual}"
@@ -116,7 +118,9 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
-        continue-on-error: true
+          # Tolerates re-runs ("file already exists") while still failing
+          # the job on real publish errors — keeps GitHub Release gated.
+          skip-existing: true
 
   # ----------------------------------------------------------------------
   # Create the GitHub Release with auto-generated notes.

@@ -256,8 +256,8 @@ def step_impl_base(default_matcher: Any = None) -> type:
     Args:
         default_matcher: Default matcher for steps that don't specify one.
             Accepts ``None`` (Behave's current default), a string name
-            (``"parse"``, ``"re"``, ``"cfparse"``, ``"simplified"``,
-            ``"cucumber"``), or a Matcher subclass.
+            (``"parse"``, ``"cfparse"``, ``"re"``, ``"re0"``), or a
+            Matcher subclass.
 
     Returns:
         A base class with ``given``, ``when``, ``then``, ``step``

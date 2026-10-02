@@ -108,3 +108,33 @@ def test_convert_non_string_raises_step_error() -> None:
 def test_convert_unregistered_type_raises_step_error() -> None:
     with pytest.raises(StepError, match="not registered"):
         convert("unknown_type", "value")
+
+
+# ---------------------------------------------------------------------------
+# Behave integration: {name:Type} placeholders in step patterns
+# ---------------------------------------------------------------------------
+
+
+def test_parameter_type_is_usable_in_parse_pattern() -> None:
+    """A registered type works as ``{name:Type}`` in a Behave step pattern."""
+    from behave.matchers import ParseMatcher
+
+    @parameter_type("UpperWord", r"[A-Z]+")
+    def to_upper(value: str) -> str:
+        return value.upper()
+
+    matcher = ParseMatcher(lambda ctx, w: w, 'the word "{w:UpperWord}"')
+    match = matcher.match('the word "HELLO"')
+    assert match is not None
+    assert match.arguments[0].value == "HELLO"
+    assert matcher.match('the word "lowercase"') is None
+
+
+def test_builtin_types_are_usable_in_parse_pattern() -> None:
+    from behave.matchers import ParseMatcher
+
+    matcher = ParseMatcher(lambda ctx, n: n, "I count {n:int}")
+    match = matcher.match("I count 42")
+    assert match is not None
+    assert match.arguments[0].value == 42
+    assert matcher.match("I count abc") is None

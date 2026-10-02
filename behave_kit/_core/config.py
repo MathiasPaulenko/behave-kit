@@ -112,13 +112,33 @@ class KitConfig:
                 suggestion="Use [credentials] in behave.toml or pass a valid override",
             )
 
+        base_url = resolved.get("base_url", "")
+        if not isinstance(base_url, str):
+            raise ConfigError(
+                f"'base_url' must be a string, got {type(base_url).__name__}",
+                suggestion="Set base_url to a URL string in behave.toml",
+            )
+        browser = resolved.get("browser", "")
+        if not isinstance(browser, str):
+            raise ConfigError(
+                f"'browser' must be a string, got {type(browser).__name__}",
+                suggestion="Set browser to a string in behave.toml",
+            )
+
+        try:
+            timeouts = {key: int(value) for key, value in timeouts_value.items()}
+        except (TypeError, ValueError) as exc:
+            raise ConfigError(
+                f"'timeouts' values must be integers: {exc}",
+                cause=exc,
+                suggestion="Use integer values in the [timeouts] table",
+            ) from exc
+
         return cls(
             env=env_name,
-            base_url=resolved.get("base_url", ""),
-            browser=resolved.get("browser", ""),
-            timeouts=types.MappingProxyType(
-                {key: int(value) for key, value in timeouts_value.items()}
-            ),
+            base_url=base_url,
+            browser=browser,
+            timeouts=types.MappingProxyType(timeouts),
             credentials=types.MappingProxyType(
                 {str(key): str(value) for key, value in credentials_value.items()}
             ),

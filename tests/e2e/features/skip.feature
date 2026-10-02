@@ -10,3 +10,8 @@ Feature: Conditional skip
   Scenario: Step runs when env does not match
     When I run a step that skips on env "ci"
     Then the step should not be skipped
+
+  Scenario: Skip decorator inside @when executes the wrapper
+    When the env-decorated step runs
+    Then the decorated step marker should be set
+    And the env-decorated step was registered as a wrapper

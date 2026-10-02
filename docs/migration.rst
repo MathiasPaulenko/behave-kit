@@ -21,20 +21,29 @@ Add to ``environment.py``:
 
 .. code-block:: python
 
-   from behave_kit import setup, teardown
+   from behave_kit import setup, teardown, teardown_feature
 
    def before_all(context):
        setup(context, env="staging")
 
+   def before_scenario(context, scenario):
+       context.kit_fixtures.setup_for_scenario(context, scenario)
+
+   def after_step(context, step):
+       context.kit_suggestions(context, step)
+
    def after_scenario(context, scenario):
        teardown(context)
+
+   def after_feature(context, feature):
+       teardown_feature(context)
 
 This enables:
 
 - Soft assertion collector (reset per scenario)
 - Context dump on failure
-- Step suggestions for undefined steps
-- Fixture manager
+- Step suggestions for undefined steps (via ``kit_suggestions`` in ``after_step``)
+- Fixture manager (via ``kit_fixtures`` in the scenario/feature hooks)
 - Scoped attribute cleanup
 
 Step 3: Replace raw asserts with soft asserts

@@ -7,10 +7,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path("..").resolve()))
 
+import behave_kit  # noqa: E402
+
 project = "behave-kit"
 author = "Mathias Paulenko"
-copyright = "2024, Mathias Paulenko"  # noqa: A001
-release = "1.2.0"
+copyright = "2026, Mathias Paulenko"  # noqa: A001
+release = behave_kit.__version__
 
 extensions = [
     "sphinx.ext.autodoc",

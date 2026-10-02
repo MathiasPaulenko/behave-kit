@@ -28,6 +28,9 @@ once to register them all:
    def before_all(context):
        register_builtin_types()
 
+Registered types are usable both via ``convert()`` and as ``{name:Type}``
+placeholders in Behave step patterns (parse/cfparse matchers).
+
 Available built-in types:
 
 - ``int`` — integer conversion
@@ -86,19 +89,20 @@ Examples
 .. code-block:: python
 
    from behave_kit import when_if
+   from behave_kit.skip.conditions import is_env
 
-   @when_if(lambda ctx: ctx.config.env == "staging")
    @when("I run the staging-only step")
+   @when_if(lambda ctx: is_env(ctx, "staging"))
    def step(context):
        ...
 
-   @when_if(lambda ctx: hasattr(ctx, "browser"))
    @when("I take a screenshot")
+   @when_if(lambda ctx: hasattr(ctx, "browser"))
    def step(context):
        context.browser.save_screenshot("debug.png")
 
-   @when_if(lambda ctx: ctx.config.env != "production")
    @when("I reset the test database")
+   @when_if(lambda ctx: not is_env(ctx, "production"))
    def step(context):
        context.db.reset()
 
@@ -109,8 +113,9 @@ Data-driven steps with @data_driven
 ------------------------------------
 
 Run a step once per row of a data file (CSV, JSON, YAML, Excel).  Column
-names are sanitized (hyphens and spaces become underscores) and injected as
-keyword arguments:
+names are sanitized to valid Python identifiers and injected as keyword
+arguments.  ``@data_driven`` must be placed *inside* (below) the Behave
+step decorator so Behave registers the wrapped function:
 
 .. autofunction:: behave_kit.steps.data_driven.data_driven
 
@@ -121,8 +126,8 @@ Examples
 
    from behave_kit import data_driven
 
-   @data_driven("tests/data/users.csv")
    @when("I login with the test credentials")
+   @data_driven("tests/data/users.csv")
    def step(context, username, password):
        login(username, password)
    # Runs once per row in users.csv
@@ -156,8 +161,8 @@ Using JSON or YAML
 
 .. code-block:: python
 
-   @data_driven("tests/data/items.json")
    @when("I process each item")
+   @data_driven("tests/data/items.json")
    def step(context, id, name):
        process(id, name)
 
@@ -177,6 +182,9 @@ patterns using `difflib`:
 Wiring suggestions
 ~~~~~~~~~~~~~~~~~~
 
+Behave hooks cannot be injected — the returned ``after_step`` hook must be
+called explicitly.  ``setup()`` attaches it to ``context.kit_suggestions``:
+
 **Automatic (via `setup()`):**
 
 .. code-block:: python
@@ -185,7 +193,9 @@ Wiring suggestions
 
    def before_all(context):
        setup(context, env="staging")
-   # Suggestions are wired automatically.
+
+   def after_step(context, step):
+       context.kit_suggestions(context, step)
 
 **Manual:**
 

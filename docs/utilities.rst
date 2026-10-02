@@ -105,9 +105,9 @@ Examples
    result = assert_under(2.0, lambda: client.get("/health"))
    assert result.status_code == 200
 
-   # As a step decorator
-   @timed(1.5)
+   # As a step decorator — inside (below) the Behave @when
    @when("I fetch the data quickly")
+   @timed(1.5)
    def step(context):
        context.data = fetch_data()
 

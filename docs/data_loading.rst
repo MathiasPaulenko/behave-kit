@@ -80,12 +80,14 @@ Given a file ``tests/data/config.json``:
 
    @given("I have the API config")
    def step(context):
-       context.config = load_data("tests/data/config.json")
+       context.api_config = load_data("tests/data/config.json")
        # Returns: {"base_url": "https://api.example.com", "timeout": 30, "retries": 3}
+       # Note: do NOT assign to context.config — that is Behave's own
+       # configuration object (userdata, formatter settings, ...)
 
    @then('the base URL should be {url}')
    def step(context, url):
-       assert context.config["base_url"] == url
+       assert context.api_config["base_url"] == url
 
 Loading YAML
 ~~~~~~~~~~~~
@@ -174,18 +176,23 @@ Register reusable data factory functions:
 Caching
 ~~~~~~~
 
-`DataCache` caches loaded data to avoid re-reading files:
+`DataCache` caches loaded data to avoid re-reading files.  ``get()``
+returns ``None`` on a miss — pair it with ``set()`` (or pass the value
+positionally):
 
 .. code-block:: python
 
-   from behave_kit import DataCache
+   from behave_kit import DataCache, Scope, load_data
 
    cache = DataCache()
 
    @given("I load users data")
    def step(context):
-       context.users = cache.get("tests/data/users.csv")
-       # First call reads the file; subsequent calls return cached data
+       users = cache.get("tests/data/users.csv")
+       if users is None:
+           users = load_data("tests/data/users.csv")
+           cache.set("tests/data/users.csv", Scope.SCENARIO, users)
+       context.users = users
 
 Error handling
 ~~~~~~~~~~~~~~

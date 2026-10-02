@@ -2,12 +2,13 @@
 
 Loads test data via `behave_kit.data.load_data` and executes the decorated
 step function once for each row, injecting the row's keys as keyword
-arguments (with ``-`` replaced by ``_`` for valid Python identifiers).
+arguments (non-identifier characters are replaced by ``_``).
 """
 
 from __future__ import annotations
 
 import functools
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Concatenate, ParamSpec, TypeVar, cast
@@ -19,9 +20,20 @@ from behave_kit.data.loader import load_examples_from
 P = ParamSpec("P")
 R = TypeVar("R")
 
+_NON_IDENTIFIER = re.compile(r"\W")
 
-def _sanitize_key(key: str) -> str:
-    return key.replace("-", "_").replace(" ", "_")
+
+def _sanitize_key(key: object) -> str:
+    """Turn a row key into a valid Python identifier usable as a kwarg name."""
+    sanitized = _NON_IDENTIFIER.sub("_", str(key))
+    if sanitized[:1].isdigit():
+        sanitized = f"_{sanitized}"
+    if not sanitized.isidentifier():
+        raise BehaveKitError(
+            f"Data row key '{key}' cannot be converted to a Python identifier",
+            suggestion="Rename the column to letters, digits and underscores",
+        )
+    return sanitized
 
 
 def data_driven(
@@ -33,14 +45,17 @@ def data_driven(
     """Decorator: run the step once per row in the data file at ``path``.
 
     Each row (a ``dict``) is unpacked as keyword arguments into the step
-    function. Column names with hyphens or spaces are converted to valid
-    Python identifiers (``-`` and `` `` → ``_``).
+    function. Column names are sanitized to valid Python identifiers
+    (non-identifier characters become ``_``).
 
     Usage::
 
-        @data_driven("tests/data/users.csv")
         @when("I login as {username}")
+        @data_driven("tests/data/users.csv")
         def step(context, username=None, password=None): ...
+
+    Note: ``@data_driven`` must be placed *inside* (below) the Behave step
+    decorator so that the wrapped function is what Behave registers.
 
     Raises:
         BehaveKitError: If the data file cannot be loaded or a row is not a

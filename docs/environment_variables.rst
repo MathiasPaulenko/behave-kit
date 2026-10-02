@@ -85,8 +85,10 @@ Type conversion
 Reading from context config
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When `setup()` is called with ``env="staging"``, the `env()` function also
-checks `context.config` for values defined in `behave.toml`:
+When `setup()` is called with ``env="staging"``, the resolved `KitConfig`
+is attached to ``context.kit_config`` (Behave's own ``context.config`` is
+not touched), and `env()` can read values from it when ``context`` is
+passed:
 
 .. code-block:: python
 
@@ -100,8 +102,8 @@ checks `context.config` for values defined in `behave.toml`:
    # steps.py
    @given("I have the base URL")
    def step(context):
-       context.base_url = env("base_url", default="http://localhost:8000")
-       # Reads from context.config when env var is not set
+       context.base_url = env("base_url", default="http://localhost:8000", context=context)
+       # Reads from context.kit_config when the env var is not set
 
 dotenv support
 ~~~~~~~~~~~~~~

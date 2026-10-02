@@ -18,10 +18,10 @@ Platform notes
 - **Unix** (Linux, macOS): uses ``signal.SIGALRM`` for immediate
   interruption of the main thread.
 - **Windows**: ``signal.SIGALRM`` is unavailable, so a
-  ``threading.Timer`` fallback is used.  This cannot interrupt
-  CPU-bound code — the timeout is detected after the current step
-  finishes.  I/O-bound code (``time.sleep``, socket reads, etc.) is
-  interrupted promptly.
+  ``threading.Timer`` fallback is used.  It cannot interrupt running
+  code at all — the timer only sets a flag that is checked when the
+  scenario ends, so a timed-out scenario runs to completion and then
+  fails with ``TimeoutError``.
 
 Usage
 -----

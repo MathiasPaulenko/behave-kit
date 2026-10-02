@@ -120,7 +120,16 @@ def _compare(
         if math.isnan(actual) or math.isnan(expected):
             diffs.append(_mismatch(path, expected, actual))
             return
-        if abs(float(actual) - float(expected)) > options.float_tolerance:
+        if isinstance(actual, int) and isinstance(expected, int):
+            # -- Exact compare: float() can overflow on very large ints.
+            if actual != expected:
+                diffs.append(_mismatch(path, expected, actual))
+            return
+        try:
+            differs = abs(float(actual) - float(expected)) > options.float_tolerance
+        except OverflowError:
+            differs = actual != expected
+        if differs:
             diffs.append(_mismatch(path, expected, actual))
         return
     if isinstance(expected, datetime) and isinstance(actual, datetime):
@@ -229,10 +238,12 @@ def _compare_sequence_unordered(
         best_probe: list[Diff] | None = None
         for candidate_index, actual_item in enumerate(remaining):
             probe: list[Diff] = []
-            _compare(actual_item, expected_item, item_path, options, probe, seen)
+            probe_seen = set(seen)
+            _compare(actual_item, expected_item, item_path, options, probe, probe_seen)
             if not probe:
                 best_index = candidate_index
                 best_probe = probe
+                seen.update(probe_seen)
                 break
             if best_probe is None or len(probe) < len(best_probe):
                 best_index = candidate_index

@@ -7,8 +7,8 @@ variable substitution and guaranteed state isolation.
 Behave's ``context.execute_steps()`` lets you compose steps from other
 steps, but it has two rough edges:
 
-- ``context.table`` and ``context.text`` are mutated by the sub-steps
-  and not restored, leaking state into the parent step.
+- ``context.table`` and ``context.text`` are only restored on the success
+  path — if a sub-step fails, the mutated values leak into the parent step.
 - Scenario Outline placeholders (``<name>``) are not substituted, so
   sub-steps can't reference the current outline row's values.
 
@@ -97,10 +97,13 @@ Validation
 
 ``run_steps`` validates its inputs before delegating to Behave:
 
+- ``context.feature`` must be set — ``run_steps`` only works inside a
+  running feature.  Otherwise ``SubStepError`` is raised.
 - ``steps`` must be a non-empty string (after stripping whitespace).
-  Empty or whitespace-only input raises ``AssertionError``.
-- ``context.active_outline`` must be a ``dict`` when present.  A list
-  or string raises ``AssertionError`` with a clear message.
+  Empty or whitespace-only input raises ``SubStepError``.
+- ``context.active_outline`` may be a ``dict``, a ``behave.model.Row``
+  (what Behave sets for Scenario Outlines), or any object exposing
+  ``items()``/``as_dict()``.  Other types raise ``SubStepError``.
 - ``context.execute_steps`` must be callable.  If it isn't (e.g.
   ``run_steps`` is called outside a Behave context), ``SubStepError``
   is raised.
@@ -119,5 +122,5 @@ Example error:
 
 .. code-block:: text
 
-   behave_kit.context.substeps.SubStepError: run_steps() requires a
-   Behave context with execute_steps(); called outside a feature.
+   behave_kit.context.substeps.SubStepError: run_steps() called outside
+   of a feature context (context.feature is missing)

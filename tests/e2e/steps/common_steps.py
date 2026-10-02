@@ -85,6 +85,35 @@ def step_verify_not_skipped(context: object) -> None:
     assert not getattr(context, "_skip_skipped", True), "Step should not have been skipped"
 
 
+# Regression guard for the documented decorator order: @skip_if_env inside
+# @when.  Behave must register the WRAPPED function (the one that performs
+# the env check), not the raw step body.  "test" != "production", so the
+# wrapper runs the body and sets the marker.
+from behave_kit import skip_if_env  # noqa: E402
+
+
+@when("the env-decorated step runs")
+@skip_if_env("production")
+def step_env_decorated(context: object) -> None:
+    context._decorated_ran = True
+
+
+@then("the decorated step marker should be set")
+def step_decorated_ran(context: object) -> None:
+    assert getattr(context, "_decorated_ran", False), "Decorated step should have run"
+
+
+@then("the env-decorated step was registered as a wrapper")
+def step_env_decorated_wrapped(context: object) -> None:
+    """The registered callable must be the skip wrapper, not the raw step."""
+    from behave.runner import the_step_registry
+
+    matchers = [m for m in the_step_registry.steps["when"] if "env-decorated" in str(m.pattern)]
+    assert matchers and hasattr(matchers[0].func, "__wrapped__"), (
+        "Behave should have registered the @skip_if_env wrapper"
+    )
+
+
 # --- Fixture steps ---
 
 
@@ -105,7 +134,7 @@ def step_register_browser_fixture(context: object) -> None:
 
 @when('I run a scenario with the "{tag}" tag')
 def step_run_scenario_with_tag(context: object, tag: str) -> None:
-    manager = getattr(context, "_behave_kit_fixtures", None)
+    manager = getattr(context, "kit_fixtures", None)
     if manager is not None:
         manager.setup_for_scenario(context, type("Obj", (), {"tags": [tag]})())
     context._fixture_setup_done = True
@@ -118,7 +147,7 @@ def step_verify_fixture_setup(context: object) -> None:
 
 @then("the browser fixture should be torn down after the scenario")
 def step_verify_fixture_teardown(context: object) -> None:
-    manager = getattr(context, "_behave_kit_fixtures", None)
+    manager = getattr(context, "kit_fixtures", None)
     if manager is not None:
         manager.teardown_scenario(context)
     assert getattr(context, "_browser_torn_down", False), "Fixture should have been torn down"
@@ -422,6 +451,23 @@ def step_try_run_steps(context: object, steps: str) -> None:
         context._substep_error = None
     except SubStepError as exc:
         context._substep_error = exc
+
+
+@given('I log in as "{user}"')
+def step_sub_login(context: object, user: str) -> None:
+    context._logged_user = user
+
+
+@when("I run login sub-steps via run_steps")
+def step_run_login_substeps(context: object) -> None:
+    """Regression: real Scenario Outlines set context.active_outline to a
+    behave.model.Row — run_steps must substitute ``<user>`` from it."""
+    run_steps(context, 'Given I log in as "<user>"')
+
+
+@then('the sub-step should have logged in "{user}"')
+def step_sub_logged_in(context: object, user: str) -> None:
+    assert getattr(context, "_logged_user", None) == user
 
 
 @then('the execute_steps call should contain "{expected}"')

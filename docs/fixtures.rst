@@ -166,20 +166,28 @@ Wiring the FixtureManager
 
 **Automatic (via `setup()`):**
 
+``setup()`` attaches a `FixtureManager` to ``context.kit_fixtures``;
+``teardown()`` already runs scenario teardowns.  Behave hooks cannot be
+injected, so the setup calls are explicit:
+
 .. code-block:: python
 
-   from behave_kit import setup
+   from behave_kit import setup, teardown, teardown_feature
 
    def before_all(context):
        setup(context, env="staging")
 
    def before_scenario(context, scenario):
-       manager = context._behave_kit_fixtures
-       manager.setup_for_scenario(context, scenario)
+       context.kit_fixtures.setup_for_scenario(context, scenario)
 
    def after_scenario(context, scenario):
-       manager = context._behave_kit_fixtures
-       manager.teardown_scenario(context)
+       teardown(context)  # includes teardown_scenario for fixtures
+
+   def before_feature(context, feature):
+       context.kit_fixtures.setup_for_feature(context, feature)
+
+   def after_feature(context, feature):
+       teardown_feature(context)  # FEATURE-scoped fixtures
 
 **Manual:**
 

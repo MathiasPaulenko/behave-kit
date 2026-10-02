@@ -47,14 +47,21 @@ def get_path(data: object, path: str, default: Any = _MISSING) -> Any:
                 suggestion="Remove consecutive dots from the path",
             )
         if isinstance(current, dict):
-            if segment not in current:
-                if default is not _MISSING:
-                    return default
-                raise BehaveKitError(
-                    f"Key '{segment}' not found in path '{path}'",
-                    suggestion=f"Available keys: {', '.join(sorted(current)) or '(none)'}",
-                )
-            current = current[segment]
+            if segment in current:
+                current = current[segment]
+                continue
+            # -- ALLOW: dicts keyed by ints (e.g. {0: "x"}) via numeric segments
+            int_key = int(segment) if segment.lstrip("-").isdigit() else None
+            if int_key is not None and int_key in current:
+                current = current[int_key]
+                continue
+            if default is not _MISSING:
+                return default
+            available = ", ".join(sorted(str(key) for key in current)) or "(none)"
+            raise BehaveKitError(
+                f"Key '{segment}' not found in path '{path}'",
+                suggestion=f"Available keys: {available}",
+            )
         elif isinstance(current, list):
             try:
                 index = int(segment)

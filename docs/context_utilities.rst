@@ -84,19 +84,25 @@ Examples
 
    from behave_kit import scoped
 
-   @scoped("driver")
    @when("I start the driver")
+   @scoped("driver")
    def step(context):
        context.driver = start_driver()
    # context.driver is automatically deleted after the scenario
+
+.. note::
+
+   Like all behave-kit step decorators, ``@scoped`` must be placed
+   *inside* (below) the Behave ``@given``/``@when``/``@then`` decorator so
+   the wrapped function is what Behave registers.
 
 **Multiple scoped attributes:**
 
 .. code-block:: python
 
+   @when("I start a browser session")
    @scoped("browser")
    @scoped("session")
-   @when("I start a browser session")
    def step(context):
        context.browser = start_browser()
        context.session = create_session()
@@ -107,11 +113,11 @@ Examples
 
    from behave_kit import scoped, Scope
 
-   @scoped("database", scope=Scope.FEATURE)
    @given("I have a database connection")
+   @scoped("database", scope=Scope.FEATURE)
    def step(context):
        context.database = connect_to_database()
-   # context.database is cleaned up after all scenarios in the feature
+   # context.database is cleaned up by teardown_feature() in after_feature
 
 **Manual cleanup:**
 
@@ -125,26 +131,20 @@ Examples
 Why scoped attributes matter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Without `@scoped`, attributes set in one scenario survive into the next:
+Behave already pops its scenario context layer after each scenario, so
+`@scoped` is most useful for two things: **deterministic cleanup inside
+teardown** (attributes are deleted even if they were set on an outer layer,
+e.g. in ``before_scenario`` or a shared object) and **feature-scoped
+attributes** cleaned by ``teardown_feature()``:
 
 .. code-block:: python
 
-   # Scenario 1
-   @when("I create a temporary file")
+   @given("I have a shared resource")
+   @scoped("shared_resource", scope=Scope.FEATURE)
    def step(context):
-       context.temp_file = create_temp_file()
+       context.shared_resource = acquire()
 
-   # Scenario 2 (temp_file still exists from Scenario 1!)
-   @then("no temp file should exist")
-   def step(context):
-       assert not hasattr(context, "temp_file")  # FAILS without @scoped
-
-With `@scoped`:
-
-.. code-block:: python
-
-   @scoped("temp_file")
-   @when("I create a temporary file")
-   def step(context):
-       context.temp_file = create_temp_file()
-   # temp_file is deleted after Scenario 1, so Scenario 2 passes
+   # environment.py
+   def after_feature(context, feature):
+       from behave_kit import teardown_feature
+       teardown_feature(context)

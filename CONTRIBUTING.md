@@ -43,6 +43,7 @@ pre-commit run --all-files
 1. Update `CHANGELOG.md` with a new `[Unreleased]` -> `[X.Y.Z]` section
 2. Bump `version` in `pyproject.toml`
 3. Run `make lint`, `make format-check`, and `make test-cov`
-4. Commit and push to `main`
-5. CI detects the version bump, creates the tag, builds, publishes to PyPI,
+4. Commit and push to `master`
+5. Tag the release: `git tag vX.Y.Z && git push origin vX.Y.Z`
+6. CI verifies the tag matches the version, builds, publishes to PyPI,
    and creates a GitHub Release automatically

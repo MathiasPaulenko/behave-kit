@@ -11,6 +11,16 @@ behave-kit provides four skip decorators that raise ``unittest.SkipTest``
 when the condition is not met, causing Behave to mark the step as skipped
 rather than failed.
 
+.. note::
+
+   Place behave-kit step decorators *inside* (below) the Behave
+   ``@given``/``@when``/``@then`` decorator, so the wrapped function is
+   what Behave registers::
+
+      @when("...")
+      @skip_if_env("production")
+      def step(context): ...
+
 skip_if_env
 ~~~~~~~~~~~
 
@@ -20,19 +30,19 @@ Skip a step when the current environment matches a given name:
 
    from behave_kit import skip_if_env
 
-   @skip_if_env("production")
    @when("I run the staging-only step")
+   @skip_if_env("production")
    def step(context):
-       # This step is skipped when context.config.env == "production"
+       # This step is skipped when context.kit_config.env == "production"
        ...
 
 You can also skip on multiple environments by stacking decorators:
 
 .. code-block:: python
 
+   @when("I run the local-only step")
    @skip_if_env("production")
    @skip_if_env("ci")
-   @when("I run the local-only step")
    def step(context):
        ...
 
@@ -45,13 +55,13 @@ Skip a step on specific operating systems:
 
    from behave_kit import skip_on_os
 
-   @skip_on_os("windows")
    @when("I run the unix-only step")
+   @skip_on_os("windows")
    def step(context):
        ...
 
-   @skip_on_os("linux")
    @when("I run the windows-only step")
+   @skip_on_os("linux")
    def step(context):
        ...
 
@@ -64,14 +74,14 @@ Skip a step when a Python module is not installed:
 
    from behave_kit import skip_if_missing
 
-   @skip_if_missing("selenium")
    @when("I use selenium webdriver")
+   @skip_if_missing("selenium")
    def step(context):
        from selenium import webdriver
        ...
 
-   @skip_if_missing("requests")
    @when("I make an HTTP request")
+   @skip_if_missing("requests")
    def step(context):
        import requests
        ...
@@ -85,8 +95,8 @@ Skip a step when no browser is available (checks for Selenium):
 
    from behave_kit import skip_if_no_browser
 
-   @skip_if_no_browser
    @when("I open the browser")
+   @skip_if_no_browser
    def step(context):
        from selenium import webdriver
        context.browser = webdriver.Chrome()
@@ -133,13 +143,13 @@ Environment-based skip
    # steps/api_steps.py
    from behave_kit import skip_if_env
 
-   @skip_if_env("production")
    @when("I reset the database")
+   @skip_if_env("production")
    def step(context):
        context.db.reset()
 
-   @skip_if_env("staging")
    @when("I run the production smoke test")
+   @skip_if_env("staging")
    def step(context):
        ...
 
@@ -153,8 +163,8 @@ function:
 
    from behave_kit import skip_if_env
 
-   @skip_if_env("production")
    @given("the test database is ready")
+   @skip_if_env("production")
    def step(context):
        context.db = create_test_db()
 
@@ -167,14 +177,15 @@ only when a condition function returns ``True``:
 .. code-block:: python
 
    from behave_kit import when_if
+   from behave_kit.skip.conditions import is_env
 
-   @when_if(lambda ctx: ctx.config.env == "staging")
    @when("I run the staging-only step")
+   @when_if(lambda ctx: is_env(ctx, "staging"))
    def step(context):
        ...
 
-   @when_if(lambda ctx: hasattr(ctx, "browser"))
    @when("I take a screenshot")
+   @when_if(lambda ctx: hasattr(ctx, "browser"))
    def step(context):
        context.browser.save_screenshot("screenshot.png")
 
@@ -182,3 +193,4 @@ API reference
 ~~~~~~~~~~~~~
 
 .. autofunction:: behave_kit.steps.conditional.when_if
+   :no-index:

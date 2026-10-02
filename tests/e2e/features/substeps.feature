@@ -23,6 +23,14 @@ Feature: Sub-step execution with isolation
     When I run steps "Given I log in as <user>" via run_steps
     Then the execute_steps call should contain "Given I log in as admin"
 
+  Scenario Outline: run_steps substitutes outline vars on the real context
+    When I run login sub-steps via run_steps
+    Then the sub-step should have logged in "admin"
+
+    Examples:
+      | user  |
+      | admin |
+
   Scenario: run_steps restores table even on sub-step failure
     Given a feature context is active with table "protected_table" and failing execute
     When I run steps "Given a failing sub-step" via run_steps

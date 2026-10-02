@@ -11,23 +11,41 @@ setup()
 
 Wires the following modules (each independently, fault-tolerant):
 
-- **env config** — loads `behave.toml` and attaches `KitConfig` to context
+- **env config** — loads `behave.toml` and attaches `KitConfig` to
+  ``context.kit_config`` (Behave's own ``context.config`` is untouched)
 - **soft asserts** — activates `SoftAssertCollector` via contextvars
 - **context dump** — enables automatic context dump on scenario failure
-- **suggestions** — wires "did you mean?" hints for undefined steps
-- **fixtures** — creates a `FixtureManager` and attaches it to context
+- **suggestions** — builds an ``after_step`` hook for "did you mean?" hints
+  and attaches it to ``context.kit_suggestions`` (call it from
+  ``after_step`` — Behave hooks cannot be injected)
+- **fixtures** — creates a `FixtureManager` and attaches it to
+  ``context.kit_fixtures``
 
 teardown()
 ----------
 
 .. autofunction:: behave_kit.hooks.teardown
 
-Cleans up wired modules in reverse order:
+Call it from ``after_scenario``.  Runs cleanup in this order:
 
-1. Teardown fixtures (runs each fixture's teardown function)
-2. Cleanup scoped attributes
-3. Report soft assertion failures (raises if any collected)
-4. Dump context if scenario failed
+1. Scenario fixture teardowns
+2. Per-scenario timeout check (raises ``TimeoutError`` if expired)
+3. Scenario-scoped attribute cleanup
+4. Class-based step instance teardowns
+5. Context dump if the scenario failed
+6. Soft assertion report (raises ``AssertionError`` if failures collected)
+7. ``continue_after_failed`` reset (only if wired by ``setup()``)
+
+Teardown is fault-tolerant: every step runs even if an earlier one fails,
+and the first error is re-raised once cleanup completes.
+
+teardown_feature()
+------------------
+
+.. autofunction:: behave_kit.hooks.teardown_feature
+
+Call it from ``after_feature``.  Runs FEATURE-scoped fixture teardowns and
+removes attributes tracked with ``@scoped(..., scope=Scope.FEATURE)``.
 
 Examples
 --------
@@ -37,7 +55,7 @@ Full automatic wiring
 
 .. code-block:: python
 
-   from behave_kit import setup, teardown
+   from behave_kit import setup, teardown, teardown_feature
 
    def before_all(context):
        setup(context, env="staging", config_file="behave.toml")
@@ -46,20 +64,22 @@ Full automatic wiring
        # Re-activate soft asserts for each scenario
        from behave_kit import use_soft_asserts
        use_soft_asserts(context)
-       # Setup fixtures for this scenario
-       manager = context._behave_kit_fixtures
-       manager.setup_for_scenario(context, scenario)
+       # Run fixtures matching the scenario's tags
+       context.kit_fixtures.setup_for_scenario(context, scenario)
+
+   def after_step(context, step):
+       # "Did you mean?" hints for undefined steps
+       context.kit_suggestions(context, step)
 
    def after_scenario(context, scenario):
-       # Clear soft assert failures before teardown
-       collector = getattr(context, "_behave_kit_soft", None)
-       if collector is not None:
-           collector.clear()
-       # Teardown fixtures
-       manager = context._behave_kit_fixtures
-       manager.teardown_scenario(context)
-       # Full teardown
+       # Runs fixture teardowns, scoped cleanup, soft-assert report, etc.
        teardown(context)
+
+   def before_feature(context, feature):
+       context.kit_fixtures.setup_for_feature(context, feature)
+
+   def after_feature(context, feature):
+       teardown_feature(context)
 
 Minimal wiring
 ~~~~~~~~~~~~~~

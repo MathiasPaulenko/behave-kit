@@ -74,7 +74,7 @@ def test_setup_sets_log_level() -> None:
 def test_setup_attaches_fixture_manager() -> None:
     context = SimpleNamespace()
     setup(context)
-    manager = getattr(context, "_behave_kit_fixtures", None)
+    manager = getattr(context, "kit_fixtures", None)
     assert manager is not None
 
 
@@ -88,7 +88,7 @@ def test_setup_attaches_soft_collector() -> None:
 def test_setup_attaches_suggestions_hook() -> None:
     context = SimpleNamespace()
     setup(context)
-    hook = getattr(context, "_behave_kit_suggestions", None)
+    hook = getattr(context, "kit_suggestions", None)
     assert callable(hook)
 
 
