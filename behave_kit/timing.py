@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import math
 import time
 from collections.abc import Callable
 from functools import wraps
@@ -20,6 +21,20 @@ R = TypeVar("R")
 
 class TimeoutExceededError(BehaveKitError):
     """Raised when a callable takes longer than the allowed time."""
+
+
+def _validate_seconds(seconds: float, label: str = "seconds") -> None:
+    """Reject negative, non-finite, or non-numeric time limits."""
+    if not isinstance(seconds, (int, float)) or isinstance(seconds, bool):
+        raise BehaveKitError(
+            f"{label} must be a number, got {type(seconds).__name__}",
+            suggestion="Use a positive float for the time limit",
+        )
+    if seconds < 0 or not math.isfinite(seconds):
+        raise BehaveKitError(
+            f"{label} must be a finite non-negative number, got {seconds}",
+            suggestion="Use a positive float for the time limit",
+        )
 
 
 def assert_under(
@@ -41,11 +56,7 @@ def assert_under(
     Raises:
         TimeoutExceededError: If ``func`` takes longer than ``seconds``.
     """
-    if seconds < 0:
-        raise BehaveKitError(
-            f"seconds must be non-negative, got {seconds}",
-            suggestion="Use a positive float for the time limit",
-        )
+    _validate_seconds(seconds)
 
     start = time.monotonic()
     result = func()
@@ -73,13 +84,9 @@ def timed(
         def step(context): ...
 
     Raises:
-        BehaveKitError: If ``seconds`` is negative.
+        BehaveKitError: If ``seconds`` is negative or not finite.
     """
-    if seconds < 0:
-        raise BehaveKitError(
-            f"seconds must be non-negative, got {seconds}",
-            suggestion="Use a positive float for the time limit",
-        )
+    _validate_seconds(seconds)
 
     def decorator(
         func: Callable[Concatenate[Context, P], R],

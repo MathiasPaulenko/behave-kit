@@ -67,3 +67,21 @@ def test_timed_accepts_zero_seconds() -> None:
         return 42
 
     assert fast_step.__name__ == "fast_step"
+
+
+@pytest.mark.parametrize("bad_seconds", [float("nan"), float("inf"), float("-inf")])
+def test_assert_under_rejects_non_finite_seconds(bad_seconds: float) -> None:
+    with pytest.raises(BehaveKitError, match="finite"):
+        assert_under(bad_seconds, lambda: None)
+
+
+@pytest.mark.parametrize("bad_seconds", ["1", None, True])
+def test_assert_under_rejects_non_numeric_seconds(bad_seconds: object) -> None:
+    with pytest.raises(BehaveKitError, match="must be a number"):
+        assert_under(bad_seconds, lambda: None)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("bad_seconds", [float("nan"), float("inf"), "1", None, True])
+def test_timed_rejects_invalid_seconds(bad_seconds: object) -> None:
+    with pytest.raises(BehaveKitError):
+        timed(bad_seconds)  # type: ignore[arg-type]

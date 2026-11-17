@@ -52,3 +52,36 @@ def test_wait_until_tolerates_array_like_truthy() -> None:
 def test_wait_until_timeout_zero_checks_once_then_raises() -> None:
     with pytest.raises(TimeoutError, match="timed out"):
         wait_until(lambda: False, timeout=0, interval=0.1)
+
+
+def test_wait_until_rejects_non_callable_condition() -> None:
+    with pytest.raises(BehaveKitError, match="must be callable"):
+        wait_until(True, timeout=1)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("bad_timeout", [float("nan"), float("inf"), float("-inf")])
+def test_wait_until_rejects_non_finite_timeout(bad_timeout: float) -> None:
+    with pytest.raises(BehaveKitError, match="finite"):
+        wait_until(lambda: True, timeout=bad_timeout)
+
+
+@pytest.mark.parametrize("bad_timeout", ["5", None, True])
+def test_wait_until_rejects_non_numeric_timeout(bad_timeout: object) -> None:
+    with pytest.raises(BehaveKitError, match="must be a number"):
+        wait_until(lambda: True, timeout=bad_timeout)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("bad_interval", [float("nan"), float("inf"), "0.1", None, True])
+def test_wait_until_rejects_non_finite_or_non_numeric_interval(bad_interval: object) -> None:
+    with pytest.raises(BehaveKitError):
+        wait_until(lambda: True, timeout=1, interval=bad_interval)  # type: ignore[arg-type]
+
+
+def test_wait_until_does_not_sleep_past_deadline() -> None:
+    """An oversized interval must be capped so the deadline is not overshot."""
+    import time
+
+    start = time.monotonic()
+    with pytest.raises(TimeoutError):
+        wait_until(lambda: False, timeout=0.2, interval=60)
+    assert time.monotonic() - start < 5

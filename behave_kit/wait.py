@@ -6,6 +6,7 @@ is not immediately available after an action.
 
 from __future__ import annotations
 
+import math
 import time
 from collections.abc import Callable
 
@@ -33,14 +34,29 @@ def wait_until(
         TimeoutError: If ``condition`` does not become truthy within
             ``timeout`` seconds.
     """
-    if timeout < 0:
+    if not callable(condition):
         raise BehaveKitError(
-            f"timeout must be non-negative, got {timeout}",
+            f"condition must be callable, got {type(condition).__name__}",
+            suggestion="Pass a zero-argument callable, e.g. lambda: check()",
+        )
+    if not isinstance(timeout, (int, float)) or isinstance(timeout, bool):
+        raise BehaveKitError(
+            f"timeout must be a number, got {type(timeout).__name__}",
             suggestion="Use a positive float for timeout seconds",
         )
-    if interval <= 0:
+    if timeout < 0 or not math.isfinite(timeout):
         raise BehaveKitError(
-            f"interval must be positive, got {interval}",
+            f"timeout must be a finite non-negative number, got {timeout}",
+            suggestion="Use a positive float for timeout seconds",
+        )
+    if not isinstance(interval, (int, float)) or isinstance(interval, bool):
+        raise BehaveKitError(
+            f"interval must be a number, got {type(interval).__name__}",
+            suggestion="Use a positive float for interval seconds",
+        )
+    if interval <= 0 or not math.isfinite(interval):
+        raise BehaveKitError(
+            f"interval must be a positive finite number, got {interval}",
             suggestion="Use a positive float for interval seconds",
         )
 
@@ -48,9 +64,10 @@ def wait_until(
     while True:
         if as_bool(condition()):
             return
-        if time.monotonic() >= deadline:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
             break
-        time.sleep(interval)
+        time.sleep(min(interval, remaining))
 
     raise TimeoutError(
         message or f"wait_until() timed out after {timeout}s (polling every {interval}s)",
