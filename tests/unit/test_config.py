@@ -83,3 +83,48 @@ def test_from_toml_rejects_overriding_table_with_string(toml_path: Path) -> None
 def test_from_toml_rejects_directory_path(tmp_path: Path) -> None:
     with pytest.raises(ConfigError, match="not found or is not a file|not a file"):
         KitConfig.from_toml(tmp_path, env="staging")
+
+
+def test_from_toml_rejects_non_table_behave_kit_key(tmp_path: Path) -> None:
+    path = tmp_path / "behave.toml"
+    path.write_text(
+        'behave_kit = "oops"\n\n[env.default]\nbase_url = "x"\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigError, match="'behave_kit' must be a table"):
+        KitConfig.from_toml(path, env="default")
+
+
+def test_raw_is_deeply_immutable(tmp_path: Path) -> None:
+    path = tmp_path / "behave.toml"
+    path.write_text(
+        '[env.default]\nnested = { inner = { deep = 1 } }\nitems = ["a", "b"]\n',
+        encoding="utf-8",
+    )
+    config = KitConfig.from_toml(path, env="default")
+    with pytest.raises(TypeError):
+        config.raw["nested"]["inner"]["deep"] = 99  # type: ignore[index]
+    with pytest.raises(AttributeError):
+        config.raw["items"].append("c")  # type: ignore[union-attr]
+    assert config.raw["items"] == ("a", "b")
+
+
+def test_from_toml_rejects_bool_timeout(tmp_path: Path) -> None:
+    path = tmp_path / "behave.toml"
+    path.write_text("[env.default]\ntimeouts = { implicit = true }\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="must be an integer, got bool"):
+        KitConfig.from_toml(path, env="default")
+
+
+def test_from_toml_rejects_non_integer_float_timeout(tmp_path: Path) -> None:
+    path = tmp_path / "behave.toml"
+    path.write_text("[env.default]\ntimeouts = { implicit = 5.5 }\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="must be an integer, got 5.5"):
+        KitConfig.from_toml(path, env="default")
+
+
+def test_from_toml_accepts_integer_float_timeout(tmp_path: Path) -> None:
+    path = tmp_path / "behave.toml"
+    path.write_text("[env.default]\ntimeouts = { implicit = 5.0 }\n", encoding="utf-8")
+    config = KitConfig.from_toml(path, env="default")
+    assert config.timeouts["implicit"] == 5

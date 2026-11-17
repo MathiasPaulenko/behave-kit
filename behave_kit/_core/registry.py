@@ -16,6 +16,24 @@ from behave_kit._core.types import Scope
 T = TypeVar("T")
 
 
+def validate_registration(name: object, scope: object) -> None:
+    """Validate a ``name``/``scope`` pair the same way `Registry.register` does.
+
+    Exposed so decorator factories (``fixture``, ``data_provider``) can fail
+    fast at decoration time with the same errors registration would raise.
+    """
+    if not isinstance(name, str) or not name:
+        raise FixtureError(
+            f"Registry name must be a non-empty string, got {name!r}",
+            suggestion="Use a non-empty string identifier",
+        )
+    if not isinstance(scope, Scope):
+        raise FixtureError(
+            f"Registry scope must be a Scope value, got {scope!r}",
+            suggestion="Use Scope.SCENARIO, Scope.FEATURE, or Scope.GLOBAL",
+        )
+
+
 @dataclass
 class _Entry(Generic[T]):
     item: T
@@ -42,16 +60,7 @@ class Registry(Generic[T]):
         Raises:
             FixtureError: if ``name`` is already registered.
         """
-        if not isinstance(name, str):
-            raise FixtureError(
-                f"Registry name must be a string, got {type(name).__name__}",
-                suggestion="Use a string identifier",
-            )
-        if not isinstance(scope, Scope):
-            raise FixtureError(
-                f"Registry scope must be a Scope value, got {scope!r}",
-                suggestion="Use Scope.SCENARIO, Scope.FEATURE, or Scope.GLOBAL",
-            )
+        validate_registration(name, scope)
         if requires is not None and not (
             isinstance(requires, list) and all(isinstance(dep, str) for dep in requires)
         ):

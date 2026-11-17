@@ -58,3 +58,12 @@ class StepError(BehaveKitError):
 
 class SubStepError(BehaveKitError):
     """Raised when sub-step execution fails or is used outside a feature context."""
+
+
+class TimeoutSetupError(BehaveKitError, ValueError):
+    """Raised when ``setup_timeout`` receives invalid arguments.
+
+    Subclasses ``ValueError`` for backwards compatibility with callers that
+    already catch it, while remaining catchable as ``BehaveKitError`` like
+    every other behave-kit error.
+    """

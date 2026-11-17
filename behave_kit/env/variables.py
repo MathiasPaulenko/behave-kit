@@ -8,7 +8,7 @@ in `os.environ`. Loads a `.env` file once via `python-dotenv` if installed.
 from __future__ import annotations
 
 import os
-from pathlib import Path
+from collections.abc import Mapping
 from typing import Any, Literal, TypeVar, overload
 
 from behave_kit._core.compat import HAS_DOTENV
@@ -32,7 +32,7 @@ def _ensure_dotenv_loaded() -> None:
         return
     from dotenv import load_dotenv
 
-    load_dotenv(Path(".env"))
+    load_dotenv()
 
 
 def _to_bool(raw: str) -> bool:
@@ -96,8 +96,9 @@ def _convert(raw: object, var_type: type) -> Any:
         return _to_float(str(raw).strip())
     if var_type is str:
         return str(raw)
+    type_name = getattr(var_type, "__name__", None) or repr(var_type)
     raise EnvVarError(
-        f"Unsupported var_type '{var_type.__name__}'",
+        f"Unsupported var_type '{type_name}'",
         suggestion="Use bool, int, float, or str",
     )
 
@@ -107,7 +108,7 @@ def _from_config(context: Context | None, key: str) -> object | None:
         return None
     for attr in ("kit_config", "config"):
         raw_config = getattr(getattr(context, attr, None), "raw", None)
-        if raw_config and key in raw_config:
+        if isinstance(raw_config, Mapping) and key in raw_config:
             return raw_config[key]  # type: ignore[no-any-return]
     return None
 
@@ -151,9 +152,9 @@ def env(
     Resolution order: ``os.environ`` -> ``context.kit_config.raw`` (if
     ``context`` is given) -> ``default`` -> `EnvVarError` (if ``required``).
     """
-    if not key:
+    if not isinstance(key, str) or not key:
         raise EnvVarError(
-            "Environment variable key must not be empty",
+            f"Environment variable key must be a non-empty string, got {key!r}",
             suggestion="Provide a non-empty key name",
         )
 

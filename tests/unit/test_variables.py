@@ -82,6 +82,25 @@ def test_env_rejects_empty_key() -> None:
         env("")
 
 
+def test_env_rejects_non_string_key() -> None:
+    with pytest.raises(EnvVarError, match="non-empty string"):
+        env(123)  # type: ignore[arg-type]
+
+
+def test_env_rejects_var_type_without_name() -> None:
+    """var_type without __name__ must produce EnvVarError, not AttributeError."""
+    with pytest.raises(EnvVarError, match="Unsupported var_type"):
+        env("BK_TEST_VAR", var_type=object(), default="x")  # type: ignore[arg-type]
+
+
+def test_env_ignores_non_mapping_config_raw() -> None:
+    """A context whose config.raw is not a mapping must not raise AttributeError."""
+    from types import SimpleNamespace
+
+    context = SimpleNamespace(kit_config=SimpleNamespace(raw="not-a-mapping"))
+    assert env("BK_TEST_VAR", context=context, default="fallback") == "fallback"
+
+
 def test_env_rejects_unsupported_var_type() -> None:
     with pytest.raises(EnvVarError, match="Unsupported var_type"):
         env("BK_TEST_VAR", var_type=list, default="x")  # type: ignore[arg-type]

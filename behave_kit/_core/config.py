@@ -79,7 +79,13 @@ class KitConfig:
                 suggestion="Check the path and file permissions",
             ) from exc
 
-        env_name = env or data.get("behave_kit", {}).get("env", "default")
+        kit_section = data.get("behave_kit", {})
+        if not isinstance(kit_section, Mapping):
+            raise ConfigError(
+                f"'behave_kit' must be a table, got {type(kit_section).__name__}",
+                suggestion="Use a [behave_kit] table in behave.toml or remove the key",
+            )
+        env_name = env or kit_section.get("env", "default")
         if not isinstance(env_name, str):
             raise ConfigError(
                 f"'behave_kit.env' must be a string, got {type(env_name).__name__}",
@@ -125,14 +131,26 @@ class KitConfig:
                 suggestion="Set browser to a string in behave.toml",
             )
 
-        try:
-            timeouts = {key: int(value) for key, value in timeouts_value.items()}
-        except (TypeError, ValueError) as exc:
-            raise ConfigError(
-                f"'timeouts' values must be integers: {exc}",
-                cause=exc,
-                suggestion="Use integer values in the [timeouts] table",
-            ) from exc
+        timeouts: dict[str, int] = {}
+        for key, value in timeouts_value.items():
+            if isinstance(value, bool):
+                raise ConfigError(
+                    f"'timeouts.{key}' must be an integer, got bool {value}",
+                    suggestion="Use an integer value in the [timeouts] table",
+                )
+            if isinstance(value, float) and not value.is_integer():
+                raise ConfigError(
+                    f"'timeouts.{key}' must be an integer, got {value}",
+                    suggestion="Use an integer value in the [timeouts] table",
+                )
+            try:
+                timeouts[key] = int(value)
+            except (TypeError, ValueError) as exc:
+                raise ConfigError(
+                    f"'timeouts.{key}' must be an integer: {exc}",
+                    cause=exc,
+                    suggestion="Use integer values in the [timeouts] table",
+                ) from exc
 
         return cls(
             env=env_name,
@@ -142,9 +160,18 @@ class KitConfig:
             credentials=types.MappingProxyType(
                 {str(key): str(value) for key, value in credentials_value.items()}
             ),
-            raw=types.MappingProxyType(resolved),
+            raw=_freeze(resolved),
         )
 
     def get(self, key: str, default: Any = None) -> Any:
         """Return the raw configuration value for ``key`` or ``default``."""
         return self.raw.get(key, default)
+
+
+def _freeze(value: Any) -> Any:
+    """Recursively wrap mappings in read-only proxies so ``raw`` is deeply immutable."""
+    if isinstance(value, Mapping):
+        return types.MappingProxyType({key: _freeze(item) for key, item in value.items()})
+    if isinstance(value, list):
+        return tuple(_freeze(item) for item in value)
+    return value

@@ -58,3 +58,14 @@ def test_base_error_includes_cause_in_string() -> None:
 def test_scope_error_is_attribute_error_subclass() -> None:
     err = ScopeError("not declared")
     assert isinstance(err, AttributeError)
+
+
+def test_timeout_setup_error_is_both_behave_kit_error_and_value_error() -> None:
+    """TimeoutSetupError keeps ``except ValueError`` working while joining
+    the behave-kit error hierarchy."""
+    from behave_kit._core.errors import TimeoutSetupError
+
+    err = TimeoutSetupError("bad timeout", suggestion="use seconds")
+    assert isinstance(err, BehaveKitError)
+    assert isinstance(err, ValueError)
+    assert "Suggestion: use seconds" in str(err)

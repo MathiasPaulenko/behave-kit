@@ -86,7 +86,7 @@ def test_resolve_dependencies_diamond() -> None:
 
 def test_register_rejects_invalid_name() -> None:
     registry: Registry[str] = Registry()
-    with pytest.raises(FixtureError, match="name must be a string"):
+    with pytest.raises(FixtureError, match="name must be a non-empty string"):
         registry.register(123, "value")
 
 

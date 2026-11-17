@@ -56,3 +56,10 @@ def test_select_profile_deep_merges_nested_tables() -> None:
 def test_select_profile_rejects_non_mapping_env() -> None:
     with pytest.raises(ConfigError, match="env.*table"):
         select_profile({"env": "not-a-table"}, "staging")
+
+
+def test_apply_overrides_rejects_non_mapping() -> None:
+    with pytest.raises(ConfigError, match="must be a mapping"):
+        apply_overrides({"a": 1}, [("a", "2")])  # type: ignore[arg-type]
+    with pytest.raises(ConfigError, match="must be a mapping"):
+        apply_overrides({"a": 1}, "a=2")  # type: ignore[arg-type]

@@ -50,6 +50,11 @@ def select_profile(toml_data: dict[str, Any], env_name: str) -> dict[str, Any]:
 
 def apply_overrides(config_dict: dict[str, Any], overrides: dict[str, str]) -> dict[str, Any]:
     """Return ``config_dict`` with CLI ``--set key=value`` overrides applied on top."""
+    if not isinstance(overrides, Mapping):
+        raise ConfigError(
+            f"overrides must be a mapping, got {type(overrides).__name__}",
+            suggestion="Pass a dict of 'key': 'value' override strings",
+        )
     merged = dict(config_dict)
     merged.update(overrides)
     return merged
