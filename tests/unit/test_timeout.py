@@ -388,6 +388,34 @@ def test_select_handler_default_on_current_platform() -> None:
         assert isinstance(handler, SignalTimeoutHandler)
 
 
+def test_select_handler_returns_thread_off_main_thread() -> None:
+    """signal.signal() only works on the main thread — a worker thread must
+    get the Timer-based handler even on Unix."""
+    import threading
+
+    result: list[object] = []
+    worker = threading.Thread(
+        target=lambda: result.append(_select_handler(5.0)),
+    )
+    worker.start()
+    worker.join()
+    assert isinstance(result[0], ThreadTimeoutHandler)
+
+
+def test_before_scenario_disarms_stale_handler(ctx: FakeContext) -> None:
+    """A leftover handler must be disarmed, not just dereferenced — otherwise
+    a Timer or SIGALRM stays armed."""
+    stale = ThreadTimeoutHandler(60)
+    stale.__enter__()
+    setattr(ctx, _TIMEOUT_HANDLER_KEY, stale)
+
+    setup_timeout(ctx, default_timeout=0)
+    timeout_before_scenario(ctx, FakeScenario())
+
+    assert stale._timer is None  # __exit__ was called, timer cancelled
+    assert getattr(ctx, _TIMEOUT_HANDLER_KEY, None) is None
+
+
 # ---------------------------------------------------------------------------
 # Integration: hooks flow
 # ---------------------------------------------------------------------------

@@ -34,6 +34,7 @@ Usage in ``environment.py``::
 
 from __future__ import annotations
 
+import contextlib
 import math
 import os
 import signal
@@ -42,6 +43,7 @@ import threading
 from types import TracebackType
 from typing import TYPE_CHECKING, Protocol
 
+from behave_kit._core.errors import TimeoutSetupError
 from behave_kit._core.logging import get_logger
 from behave_kit._core.types import Context
 
@@ -170,8 +172,12 @@ class ThreadTimeoutHandler:
 
 
 def _select_handler(timeout: float) -> TimeoutHandler:
-    """Return the appropriate handler for the current platform."""
+    """Return the appropriate handler for the current platform and thread."""
     if _IS_WINDOWS:
+        return ThreadTimeoutHandler(timeout)
+    # signal.signal() raises ValueError off the main thread — fall back to
+    # the thread-based handler when Behave (or the caller) runs in a thread.
+    if threading.current_thread() is not threading.main_thread():
         return ThreadTimeoutHandler(timeout)
     return SignalTimeoutHandler(timeout)
 
@@ -240,7 +246,13 @@ def timeout_before_scenario(context: Context, scenario: BehaveScenario) -> None:
     Call this from ``before_scenario``.  If no timeout is configured
     (default is 0 and no ``@timeout:N`` tag is present), this is a no-op.
     """
-    # Clear any stale handler from a previous scenario
+    # Disarm any stale handler from a previous scenario — dropping the
+    # reference alone would leave a SIGALRM or Timer still armed.
+    stale = getattr(context, _TIMEOUT_HANDLER_KEY, None)
+    if stale is not None:
+        logger.warning("Stale timeout handler found; disarming it before starting a new one")
+        with contextlib.suppress(Exception):
+            stale.__exit__(None, None, None)
     setattr(context, _TIMEOUT_HANDLER_KEY, None)
 
     default = getattr(context, _TIMEOUT_DEFAULT_KEY, 0)
@@ -320,18 +332,35 @@ def setup_timeout(
         try:
             default_timeout = float(raw)
         except ValueError as exc:
-            raise ValueError(f"BEHAVE_SCENARIO_TIMEOUT must be a number, got {raw!r}") from exc
+            raise TimeoutSetupError(
+                f"BEHAVE_SCENARIO_TIMEOUT must be a number, got {raw!r}",
+                cause=exc,
+                suggestion="Set it to a non-negative number of seconds",
+            ) from exc
     else:
         try:
             default_timeout = float(default_timeout)
         except (TypeError, ValueError) as exc:
-            raise ValueError(f"default_timeout must be a number, got {default_timeout!r}") from exc
+            raise TimeoutSetupError(
+                f"default_timeout must be a number, got {default_timeout!r}",
+                cause=exc,
+                suggestion="Pass a non-negative number of seconds",
+            ) from exc
     if default_timeout < 0:
-        raise ValueError(f"default_timeout must be non-negative, got {default_timeout}")
+        raise TimeoutSetupError(
+            f"default_timeout must be non-negative, got {default_timeout}",
+            suggestion="Pass 0 to disable or a positive number of seconds",
+        )
     if not math.isfinite(default_timeout):
-        raise ValueError(f"default_timeout must be finite, got {default_timeout}")
+        raise TimeoutSetupError(
+            f"default_timeout must be finite, got {default_timeout}",
+            suggestion="Pass a positive number of seconds",
+        )
     if not timeout_tag or not isinstance(timeout_tag, str):
-        raise ValueError(f"timeout_tag must be a non-empty string, got {timeout_tag!r}")
+        raise TimeoutSetupError(
+            f"timeout_tag must be a non-empty string, got {timeout_tag!r}",
+            suggestion="Use a tag name like 'timeout' for @timeout:N tags",
+        )
 
     setattr(context, _TIMEOUT_DEFAULT_KEY, default_timeout)
     setattr(context, _TIMEOUT_TAG_KEY, timeout_tag)
