@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import importlib
-import logging
 import platform
 
+from behave_kit._core.logging import get_logger
 from behave_kit._core.types import Context
 
-logger = logging.getLogger("behave_kit.skip.conditions")
+logger = get_logger("skip.conditions")
 
 
 def is_env(context: Context, env_name: str) -> bool:

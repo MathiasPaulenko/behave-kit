@@ -36,6 +36,14 @@ def _validate_str(value: object, label: str) -> str:
     return value
 
 
+def _require_step_callable(func: object, label: str) -> None:
+    if not callable(func):
+        raise BehaveKitError(
+            f"@{label} applied to non-callable {type(func).__name__}",
+            suggestion="Apply the decorator to a step function",
+        )
+
+
 def skip_if_env(
     env_name: str,
 ) -> Callable[[Callable[Concatenate[Context, P], R]], Callable[Concatenate[Context, P], R]]:
@@ -46,6 +54,7 @@ def skip_if_env(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
         """Wrap ``func`` to skip it on the configured environment."""
+        _require_step_callable(func, "skip_if_env")
 
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
@@ -69,6 +78,7 @@ def skip_on_os(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
         """Wrap ``func`` to skip it on the named operating system."""
+        _require_step_callable(func, "skip_on_os")
 
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
@@ -92,6 +102,7 @@ def skip_if_missing(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
         """Wrap ``func`` to skip it when a dependency is missing."""
+        _require_step_callable(func, "skip_if_missing")
 
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
@@ -121,6 +132,7 @@ def skip_if_no_browser(
         f: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
         """Wrap ``f`` to skip it when Selenium is unavailable."""
+        _require_step_callable(f, "skip_if_no_browser")
 
         @functools.wraps(f)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:

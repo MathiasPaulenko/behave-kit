@@ -3,6 +3,9 @@
 import contextlib
 from types import SimpleNamespace
 
+import pytest
+
+from behave_kit._core.errors import BehaveKitError
 from behave_kit._core.types import Scope
 from behave_kit.context.scoped import cleanup_scoped, scoped
 
@@ -92,3 +95,27 @@ def test_scoped_tracks_attribute_when_step_raises() -> None:
     assert context.driver == "chrome"
     cleanup_scoped(context, scope=Scope.SCENARIO)
     assert not hasattr(context, "driver")
+
+
+def test_scoped_rejects_invalid_name() -> None:
+    with pytest.raises(BehaveKitError, match="non-empty string"):
+        scoped("")
+
+    with pytest.raises(BehaveKitError, match="non-empty string"):
+        scoped(123)  # type: ignore[arg-type]
+
+
+def test_scoped_rejects_invalid_scope() -> None:
+    with pytest.raises(BehaveKitError, match="Scope value"):
+        scoped("driver", scope="scenario")  # type: ignore[arg-type]
+
+
+def test_cleanup_scoped_rejects_invalid_scope() -> None:
+    with pytest.raises(BehaveKitError, match="Scope value"):
+        cleanup_scoped(SimpleNamespace(), scope="scenario")  # type: ignore[arg-type]
+
+
+def test_scoped_rejects_non_callable() -> None:
+    decorator = scoped("non_callable_attr")
+    with pytest.raises(BehaveKitError, match="non-callable"):
+        decorator(42)  # type: ignore[arg-type]

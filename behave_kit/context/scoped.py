@@ -11,6 +11,7 @@ import functools
 from collections.abc import Callable
 from typing import Concatenate, ParamSpec, TypeVar, cast
 
+from behave_kit._core.errors import BehaveKitError
 from behave_kit._core.logging import get_logger
 from behave_kit._core.types import Context, Scope
 
@@ -45,11 +46,26 @@ def scoped(
     After the wrapped step function runs, ``name`` is registered for
     cleanup at the given ``scope`` (see `cleanup_scoped`).
     """
+    if not isinstance(name, str) or not name:
+        raise BehaveKitError(
+            f"@scoped name must be a non-empty string, got {name!r}",
+            suggestion='Use @scoped("attr_name") with the context attribute name',
+        )
+    if not isinstance(scope, Scope):
+        raise BehaveKitError(
+            f"@scoped scope must be a Scope value, got {scope!r}",
+            suggestion="Use Scope.SCENARIO or Scope.FEATURE",
+        )
 
     def decorator(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
         """Wrap ``func`` to register ``name`` for cleanup after it runs."""
+        if not callable(func):
+            raise BehaveKitError(
+                f"@scoped('{name}') applied to non-callable {type(func).__name__}",
+                suggestion="Apply @scoped to a step function",
+            )
 
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
@@ -66,6 +82,11 @@ def scoped(
 
 def cleanup_scoped(context: Context, scope: Scope = Scope.SCENARIO) -> None:
     """Delete every attribute tracked with `@scoped` at the given ``scope``."""
+    if not isinstance(scope, Scope):
+        raise BehaveKitError(
+            f"scope must be a Scope value, got {scope!r}",
+            suggestion="Use Scope.SCENARIO or Scope.FEATURE",
+        )
     remaining: list[tuple[str, Scope]] = []
     for tracked_name, tracked_scope in _tracked(context):
         if tracked_scope != scope:

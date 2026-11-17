@@ -130,3 +130,35 @@ def test_dump_context_skips_non_string_keys_in_stack(tmp_path: Path) -> None:
     output_file = dump_context(context, path=tmp_path)
     data = json.loads(output_file.read_text(encoding="utf-8"))
     assert data == {"user": "alice"}
+
+
+def test_safe_filename_avoids_windows_reserved_names() -> None:
+    from behave_kit.context.dump import _safe_filename
+
+    for reserved in ("CON", "NUL", "COM1", "lpt9", "aux"):
+        assert _safe_filename(reserved).startswith("_")
+
+
+def test_safe_filename_strips_underscore_fringe() -> None:
+    from behave_kit.context.dump import _safe_filename
+
+    assert _safe_filename("!!!") == "context"
+    assert _safe_filename("___name___") == "name"
+
+
+def test_safe_filename_truncates_long_names() -> None:
+    from behave_kit.context.dump import _safe_filename
+
+    assert len(_safe_filename("x" * 500)) <= 120
+
+
+def test_dump_context_wraps_write_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from behave_kit._core.errors import BehaveKitError
+
+    def fail_write(*args: object, **kwargs: object) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(Path, "write_text", fail_write)
+    context = SimpleNamespace(user="alice")
+    with pytest.raises(BehaveKitError, match="Cannot write context dump"):
+        dump_context(context, path=tmp_path)

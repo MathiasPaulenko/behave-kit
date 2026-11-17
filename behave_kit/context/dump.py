@@ -56,8 +56,24 @@ def _serializable_attrs(context: Context) -> dict[str, Any]:
     return attrs
 
 
+# Windows reserved device names — writing to any of these fails or worse.
+_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{i}" for i in range(1, 10)),
+    *(f"LPT{i}" for i in range(1, 10)),
+}
+_MAX_FILENAME_LEN = 120
+
+
 def _safe_filename(name: str) -> str:
-    return "".join(char if char.isalnum() else "_" for char in name) or "context"
+    safe = "".join(char if char.isalnum() else "_" for char in name)
+    safe = safe.strip("_") or "context"
+    if safe.upper() in _RESERVED_NAMES:
+        safe = f"_{safe}"
+    return safe[:_MAX_FILENAME_LEN]
 
 
 def dump_context(context: Context, path: str | Path = "debug/") -> Path:
@@ -86,7 +102,14 @@ def dump_context(context: Context, path: str | Path = "debug/") -> Path:
     scenario = getattr(context, "scenario", None)
     scenario_name = getattr(scenario, "name", None) or "context"
     output_file = output_dir / f"{_safe_filename(str(scenario_name))}.json"
-    output_file.write_text(json.dumps(attrs, indent=2, default=str), encoding="utf-8")
+    try:
+        output_file.write_text(json.dumps(attrs, indent=2, default=str), encoding="utf-8")
+    except OSError as exc:
+        raise BehaveKitError(
+            f"Cannot write context dump '{output_file}': {exc}",
+            cause=exc,
+            suggestion="Check the path and permissions",
+        ) from exc
     return output_file
 
 

@@ -126,3 +126,16 @@ def test_skip_on_os_rejects_non_string_argument() -> None:
         @skip_on_os(123)
         def step(context: SimpleNamespace) -> str:
             return "executed"
+
+
+def test_skip_decorators_reject_non_callable() -> None:
+    from behave_kit._core.errors import BehaveKitError
+
+    with pytest.raises(BehaveKitError, match="non-callable"):
+        skip_if_env("x")(42)  # type: ignore[arg-type]
+    with pytest.raises(BehaveKitError, match="non-callable"):
+        skip_on_os("x")(42)  # type: ignore[arg-type]
+    with pytest.raises(BehaveKitError, match="non-callable"):
+        skip_if_missing("x")(42)  # type: ignore[arg-type]
+    with pytest.raises(BehaveKitError, match="non-callable"):
+        skip_if_no_browser(42)  # type: ignore[arg-type]

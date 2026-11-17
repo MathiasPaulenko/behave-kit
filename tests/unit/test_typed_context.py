@@ -130,3 +130,13 @@ def test_setup_with_no_kwargs_is_noop() -> None:
     typed.setup()
     assert not hasattr(context, "driver")
     assert not hasattr(context, "base_url")
+
+
+def test_typed_context_rejects_non_class_schema() -> None:
+    context = SimpleNamespace()
+    with pytest.raises(ScopeError, match="must be a class"):
+        TypedContext(context, "MySchema")  # type: ignore[arg-type]
+    with pytest.raises(ScopeError, match="must be a class"):
+        TypedContext(context, 42)  # type: ignore[arg-type]
+    with pytest.raises(ScopeError, match="must be a class"):
+        TypedContext(context, MySchema())  # type: ignore[arg-type]

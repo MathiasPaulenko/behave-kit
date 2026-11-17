@@ -36,21 +36,33 @@ def _matches_type(value: object, hint: Any) -> bool:
 class TypedContext(Generic[T]):
     """Schema-validated proxy over a Behave `Context`."""
 
+    _resolved_hints: dict[str, Any] | None
+
     def __init__(self, context: Context, schema: type[T]) -> None:
+        if not isinstance(schema, type):
+            raise ScopeError(
+                f"schema must be a class with type annotations, got {schema!r}",
+                suggestion="Pass a plain class whose annotations declare the context attributes",
+            )
         super().__setattr__("_context", context)
         super().__setattr__("_schema", schema)
+        super().__setattr__("_resolved_hints", None)
 
     def _declared_attrs(self) -> dict[str, Any]:
         annotations: dict[str, Any] = {}
-        for cls in reversed(getattr(self._schema, "__mro__", [self._schema])):
+        for cls in reversed(self._schema.__mro__):
             annotations.update(getattr(cls, "__annotations__", {}))
         return annotations
 
     def _type_hints(self) -> dict[str, Any]:
-        try:
-            return get_type_hints(self._schema)
-        except Exception:
-            return self._declared_attrs()
+        hints = self._resolved_hints
+        if hints is None:
+            try:
+                hints = get_type_hints(self._schema)
+            except Exception:
+                hints = self._declared_attrs()
+            super().__setattr__("_resolved_hints", hints)
+        return hints
 
     def _validate_name(self, name: str) -> None:
         declared = self._declared_attrs()
