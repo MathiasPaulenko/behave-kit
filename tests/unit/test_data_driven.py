@@ -102,3 +102,27 @@ def test_data_driven_empty_file_raises(tmp_path: Path) -> None:
 
     with pytest.raises(BehaveKitError, match="No data rows"):
         step(SimpleNamespace())
+
+
+def test_data_driven_rejects_sanitized_key_collision(tmp_path: Path) -> None:
+    """'a.b' and 'a b' both sanitize to 'a_b' — must raise, not silently drop."""
+    csv_file = tmp_path / "data.csv"
+    csv_file.write_text("a.b,a b\nx,y\n", encoding="utf-8")
+
+    @data_driven(csv_file)
+    def step(context: object, **kwargs: str) -> None:
+        pass
+
+    with pytest.raises(BehaveKitError, match="sanitize"):
+        step(SimpleNamespace())
+
+
+def test_data_driven_rejects_invalid_path() -> None:
+    with pytest.raises(BehaveKitError, match="must be a string or Path"):
+        data_driven(42)  # type: ignore[arg-type]
+
+
+def test_data_driven_rejects_non_callable() -> None:
+    decorator = data_driven("rows.csv")
+    with pytest.raises(BehaveKitError, match="non-callable"):
+        decorator(42)  # type: ignore[arg-type]

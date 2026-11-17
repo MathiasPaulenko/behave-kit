@@ -61,12 +61,22 @@ def data_driven(
         BehaveKitError: If the data file cannot be loaded or a row is not a
             dict.
     """
+    if not isinstance(path, (str, Path)):
+        raise BehaveKitError(
+            f"@data_driven path must be a string or Path, got {type(path).__name__}",
+            suggestion='Use @data_driven("tests/data/rows.csv")',
+        )
     data_path = Path(path)
 
     def decorator(
         func: Callable[Concatenate[Context, P], R],
     ) -> Callable[Concatenate[Context, P], R]:
         """Wrap ``func`` to execute once per data row."""
+        if not callable(func):
+            raise BehaveKitError(
+                "@data_driven applied to a non-callable object",
+                suggestion="Apply @data_driven to a step function",
+            )
 
         @functools.wraps(func)
         def wrapper(context: Context, *args: P.args, **kwargs: P.kwargs) -> R:
@@ -84,7 +94,17 @@ def data_driven(
                         f"Data row is {type(row).__name__}, expected dict",
                         suggestion="Ensure the data file contains rows of key-value pairs",
                     )
-                row_kwargs: dict[str, Any] = {_sanitize_key(k): v for k, v in row.items()}
+                row_kwargs: dict[str, Any] = {}
+                for raw_key, value in row.items():
+                    key = _sanitize_key(raw_key)
+                    if key in row_kwargs:
+                        raise BehaveKitError(
+                            f"Data columns {raw_key!r} and a previous column both "
+                            f"sanitize to '{key}'",
+                            suggestion="Rename the columns so they stay distinct "
+                            "after sanitization",
+                        )
+                    row_kwargs[key] = value
                 merged = {**row_kwargs, **kwargs}
                 last_result = func(context, *args, **merged)
             return cast("R", last_result)

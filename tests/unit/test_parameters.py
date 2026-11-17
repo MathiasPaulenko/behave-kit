@@ -110,6 +110,27 @@ def test_convert_unregistered_type_raises_step_error() -> None:
         convert("unknown_type", "value")
 
 
+def test_parameter_type_rejects_invalid_name() -> None:
+    with pytest.raises(StepError, match="valid identifier"):
+        parameter_type("not a name")
+
+    with pytest.raises(StepError, match="valid identifier"):
+        parameter_type("")
+
+    with pytest.raises(StepError, match="valid identifier"):
+        parameter_type(123)  # type: ignore[arg-type]
+
+
+def test_parameter_type_rejects_non_string_pattern() -> None:
+    with pytest.raises(StepError, match="pattern must be a string"):
+        parameter_type("valid_name", 123)  # type: ignore[arg-type]
+
+
+def test_parameter_type_rejects_invalid_regex_pattern() -> None:
+    with pytest.raises(StepError, match="not a valid regex"):
+        parameter_type("bad_regex_type", r"[unclosed")
+
+
 # ---------------------------------------------------------------------------
 # Behave integration: {name:Type} placeholders in step patterns
 # ---------------------------------------------------------------------------
@@ -138,3 +159,9 @@ def test_builtin_types_are_usable_in_parse_pattern() -> None:
     assert match is not None
     assert match.arguments[0].value == 42
     assert matcher.match("I count abc") is None
+
+
+def test_parameter_type_rejects_non_callable() -> None:
+    decorator = parameter_type("non_callable_type_test", pattern=r"\d+")
+    with pytest.raises(StepError, match="non-callable"):
+        decorator(42)  # type: ignore[arg-type]

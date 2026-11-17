@@ -190,6 +190,11 @@ def _make_step_wrapper(cls: type, func_name: str) -> Callable[..., Any]:
             f"Step method '{func_name}' is not defined on {cls.__name__}",
             suggestion="Ensure the method is defined on the class or one of its bases",
         )
+    if not callable(method):
+        raise StepError(
+            f"Step attribute '{func_name}' on {cls.__name__} is not callable",
+            suggestion="Define a method, not a property or plain attribute",
+        )
     if inspect.iscoroutinefunction(method):
         raise StepError(
             f"Async step method '{func_name}' is not supported by step_impl_base",
@@ -235,14 +240,16 @@ def teardown_steps(context: Context) -> None:
     instances = getattr(context, _INSTANCES_KEY, None)
     if not instances:
         return
-    for instance in list(instances.values()):
-        teardown_fn = getattr(instance, "teardown", None)
-        if callable(teardown_fn):
-            try:
-                teardown_fn()
-            except Exception:
-                logger.exception("teardown() failed for %r", type(instance).__name__)
-    instances.clear()
+    try:
+        for instance in list(instances.values()):
+            teardown_fn = getattr(instance, "teardown", None)
+            if callable(teardown_fn):
+                try:
+                    teardown_fn()
+                except Exception:
+                    logger.exception("teardown() failed for %r", type(instance).__name__)
+    finally:
+        instances.clear()
 
 
 def step_impl_base(default_matcher: Any = None) -> type:

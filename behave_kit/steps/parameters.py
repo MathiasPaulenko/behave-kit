@@ -57,9 +57,33 @@ def parameter_type(
     match the parameter text; when omitted, Behave falls back to its default
     "anything" pattern.
     """
+    if not isinstance(name, str) or not name.isidentifier():
+        raise StepError(
+            f"Parameter type name must be a valid identifier, got {name!r}",
+            suggestion="Use a name like 'email' or 'iso_date' (letters, digits, underscores)",
+        )
+    if not isinstance(pattern, str):
+        raise StepError(
+            f"Parameter type pattern must be a string, got {type(pattern).__name__}",
+            suggestion=r"Pass a regular expression, e.g. pattern=r'\d+'",
+        )
+    if pattern:
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise StepError(
+                f"Parameter type pattern is not a valid regex: {exc}",
+                cause=exc,
+                suggestion=r"Check the syntax, e.g. pattern=r'\d+'",
+            ) from exc
 
     def decorator(func: Callable[[str], Any]) -> Callable[[str], Any]:
         """Register ``func`` as the converter for ``name``."""
+        if not callable(func):
+            raise StepError(
+                f"@parameter_type('{name}') applied to non-callable {type(func).__name__}",
+                suggestion="Apply @parameter_type to a converter function",
+            )
         _registry.register(name, func)
         _patterns[name] = pattern
         _register_with_behave(name, func, pattern)

@@ -26,6 +26,11 @@ def when_if(
     When the condition is false, the step is skipped (via
     `unittest.SkipTest`) rather than executed or failed.
     """
+    if not callable(condition):
+        raise BehaveKitError(
+            f"@when_if condition must be callable, got {type(condition).__name__}",
+            suggestion="Use @when_if(lambda ctx: ...) or @when_if(my_condition)",
+        )
 
     def decorator(
         func: Callable[Concatenate[Context, P], R],

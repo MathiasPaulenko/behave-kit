@@ -932,6 +932,44 @@ def test_no_teardown_hook_means_no_teardown_call() -> None:
     ctx = SimpleNamespace()
     _run_step("a step without a teardown hook", "given", ctx)
     teardown_steps(ctx)  # should not raise
+
+
+def test_step_attribute_that_is_not_callable_raises() -> None:
+    """A step entry pointing at a non-method attribute (e.g. a property used
+    as a step) must raise StepError at register() time, not AttributeError."""
+    Base = step_impl_base()
+
+    class Steps(Base):
+        @Base.given("a step implemented as a property")
+        @property
+        def prop_step(self) -> int:
+            return 42
+
+    with pytest.raises(StepError, match="not callable"):
+        Steps.register()
+
+
+def test_teardown_steps_clears_instances_even_on_base_exception() -> None:
+    """instances.clear() runs in finally — a BaseException must not leave
+    stale instances registered on the context."""
+    Base = step_impl_base()
+
+    class Steps(Base):
+        @Base.given("a step before a hard teardown crash")
+        def step_one(self) -> None:
+            pass
+
+        def teardown(self) -> None:
+            raise KeyboardInterrupt
+
+    Steps.register()
+    ctx = SimpleNamespace()
+    _run_step("a step before a hard teardown crash", "given", ctx)
+    instances = getattr(ctx, _INSTANCES_KEY)
+    with pytest.raises(KeyboardInterrupt):
+        teardown_steps(ctx)
+    assert instances == {}
+    Steps.clear()
     assert getattr(ctx, _INSTANCES_KEY, {}) == {}
     Steps.clear()
 

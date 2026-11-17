@@ -63,6 +63,13 @@ def test_when_if_detects_missing_parentheses() -> None:
         step(SimpleNamespace())
 
 
+def test_when_if_rejects_non_callable_condition() -> None:
+    from behave_kit._core.errors import BehaveKitError
+
+    with pytest.raises(BehaveKitError, match="must be callable"):
+        when_if("always")  # type: ignore[arg-type]
+
+
 def test_when_if_tolerates_array_like_condition() -> None:
     try:
         import numpy as np  # type: ignore[import-not-found]
