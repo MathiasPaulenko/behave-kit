@@ -119,6 +119,24 @@ def test_fixture_scope_returns_registered_scope() -> None:
     assert fixture_scope("scope_test_feature") == Scope.FEATURE
 
 
+def test_register_rejects_non_iterable_requires() -> None:
+    with pytest.raises(FixtureError, match="requires must be"):
+        fixture("bad_requires_test", requires=123)  # type: ignore[arg-type]
+
+    with pytest.raises(FixtureError, match="requires must be"):
+        fixture("bad_requires_test_2", requires=object())  # type: ignore[arg-type]
+
+
+def test_fixture_rejects_invalid_name_and_scope_eagerly() -> None:
+    """Bad name/scope must fail at decoration time, not when applied."""
+    with pytest.raises(FixtureError, match="non-empty string"):
+        fixture("")
+    with pytest.raises(FixtureError, match="non-empty string"):
+        fixture(123)  # type: ignore[arg-type]
+    with pytest.raises(FixtureError, match="Scope value"):
+        fixture("ok_name", scope="scenario")  # type: ignore[arg-type]
+
+
 def test_fixture_names_filtered_by_scope() -> None:
     @fixture("names_test_scenario")
     def scenario_fixture(context: SimpleNamespace) -> None:
@@ -133,3 +151,9 @@ def test_fixture_names_filtered_by_scope() -> None:
     assert "names_test_scenario" in scenario_names
     assert "names_test_feature" not in scenario_names
     assert "names_test_feature" in feature_names
+
+
+def test_fixture_rejects_non_callable() -> None:
+    decorator = fixture("non_callable_fixture")
+    with pytest.raises(FixtureError, match="non-callable"):
+        decorator(42)  # type: ignore[arg-type]

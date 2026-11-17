@@ -69,12 +69,14 @@ class FixtureManager:
                 suggestion="Return None or (setup_fn, teardown_fn)",
             )
         setup_fn, teardown_fn = result
-        setup_fn(context)
+        # Register the teardown BEFORE running setup: the factory may already
+        # hold resources, so a mid-setup failure must still get cleaned up.
         scope = fixture_scope(name)
         if scope == Scope.SCENARIO:
             self._scenario_teardowns.append((name, teardown_fn))
         else:
             self._feature_teardowns.append((name, teardown_fn))
+        setup_fn(context)
 
     def _setup_for_tags(self, context: Context, tags: set[str], scope: Scope) -> None:
         available = set(fixture_names(scope))
@@ -94,9 +96,20 @@ class FixtureManager:
                     suggestion=suggestion,
                 ) from exc
             for dep_name in order:
-                if dep_name not in executed and fixture_scope(dep_name) == scope:
-                    self._run_fixture(dep_name, context)
-                    executed.add(dep_name)
+                if dep_name in executed:
+                    continue
+                if fixture_scope(dep_name) != scope:
+                    logger.warning(
+                        "Fixture '%s' (scope=%s) is required by '%s' but does not "
+                        "match scope=%s — skipping it",
+                        dep_name,
+                        fixture_scope(dep_name).value,
+                        tag,
+                        scope.value,
+                    )
+                    continue
+                self._run_fixture(dep_name, context)
+                executed.add(dep_name)
 
     def setup_for_scenario(self, context: Context, scenario: object) -> None:
         """Run scenario-scoped fixtures matching ``scenario`` tags."""
@@ -110,18 +123,22 @@ class FixtureManager:
 
     def teardown_scenario(self, context: Context) -> None:
         """Run scenario-scoped teardowns in reverse order."""
-        for name, teardown in reversed(self._scenario_teardowns):
-            try:
-                teardown(context)
-            except Exception:
-                logger.exception("Teardown error in fixture '%s'", name)
-        self._scenario_teardowns.clear()
+        try:
+            for name, teardown in reversed(self._scenario_teardowns):
+                try:
+                    teardown(context)
+                except Exception:
+                    logger.exception("Teardown error in fixture '%s'", name)
+        finally:
+            self._scenario_teardowns.clear()
 
     def teardown_feature(self, context: Context) -> None:
         """Run feature-scoped teardowns in reverse order."""
-        for name, teardown in reversed(self._feature_teardowns):
-            try:
-                teardown(context)
-            except Exception:
-                logger.exception("Teardown error in fixture '%s'", name)
-        self._feature_teardowns.clear()
+        try:
+            for name, teardown in reversed(self._feature_teardowns):
+                try:
+                    teardown(context)
+                except Exception:
+                    logger.exception("Teardown error in fixture '%s'", name)
+        finally:
+            self._feature_teardowns.clear()

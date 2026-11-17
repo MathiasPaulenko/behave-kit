@@ -203,3 +203,70 @@ def test_circular_dependency_is_reported() -> None:
     scenario = SimpleNamespace(tags=["circular_a"])
     with pytest.raises(FixtureError, match="Circular"):
         manager.setup_for_scenario(context, scenario)
+
+
+def test_cross_scope_dependency_is_skipped_with_warning(caplog: pytest.LogCaptureFixture) -> None:
+    import logging
+
+    ran: list[str] = []
+
+    @fixture("xscope_dep_feature", scope=Scope.FEATURE)
+    def feature_dep(context: SimpleNamespace) -> None:
+        ran.append("feature_dep")
+
+    @fixture("xscope_dep_child", requires="xscope_dep_feature")
+    def child(context: SimpleNamespace) -> None:
+        ran.append("child")
+
+    manager = FixtureManager()
+    context = SimpleNamespace()
+    scenario = SimpleNamespace(tags=["xscope_dep_child"])
+    with caplog.at_level(logging.WARNING, logger="behave_kit"):
+        manager.setup_for_scenario(context, scenario)
+    assert ran == ["child"]
+    assert "does not match scope" in caplog.text
+    manager.teardown_scenario(context)
+
+
+def test_teardown_runs_even_when_setup_fn_fails() -> None:
+    """The factory may hold resources before setup runs — a failing setup
+    must not orphan them."""
+    calls: list[str] = []
+
+    @fixture("partial_setup_test")
+    def partial_fixture(context: SimpleNamespace) -> tuple:
+        def setup(ctx: SimpleNamespace) -> None:
+            raise RuntimeError("setup boom")
+
+        def teardown(ctx: SimpleNamespace) -> None:
+            calls.append("teardown")
+
+        return setup, teardown
+
+    manager = FixtureManager()
+    context = SimpleNamespace()
+    scenario = SimpleNamespace(tags=["partial_setup_test"])
+    with pytest.raises(RuntimeError, match="setup boom"):
+        manager.setup_for_scenario(context, scenario)
+    manager.teardown_scenario(context)
+    assert calls == ["teardown"]
+
+
+def test_teardown_list_cleared_even_on_base_exception() -> None:
+    @fixture("kb_interrupt_test")
+    def bad_teardown(context: SimpleNamespace) -> tuple:
+        def setup(ctx: SimpleNamespace) -> None:
+            pass
+
+        def teardown(ctx: SimpleNamespace) -> None:
+            raise KeyboardInterrupt
+
+        return setup, teardown
+
+    manager = FixtureManager()
+    context = SimpleNamespace()
+    scenario = SimpleNamespace(tags=["kb_interrupt_test"])
+    manager.setup_for_scenario(context, scenario)
+    with pytest.raises(KeyboardInterrupt):
+        manager.teardown_scenario(context)
+    assert manager._scenario_teardowns == []

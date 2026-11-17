@@ -34,7 +34,6 @@ if TYPE_CHECKING:
 logger = get_logger("hooks")
 
 _WIRED_KEY = "_behave_kit_wired"
-_FIXTURES_KEY = "_behave_kit_fixtures"
 
 
 def _get_timeout_key() -> str:
@@ -76,11 +75,8 @@ def _wire_suggestions(context: Context) -> None:
 
 
 def _get_fixture_manager(context: Context) -> FixtureManager | None:
-    """Return the wired `FixtureManager`, checking the public name first."""
-    manager = getattr(context, "kit_fixtures", None)
-    if manager is None:
-        manager = getattr(context, _FIXTURES_KEY, None)
-    return manager
+    """Return the wired `FixtureManager`, or ``None`` if fixtures were not wired."""
+    return getattr(context, "kit_fixtures", None)
 
 
 def _wire_fixtures(context: Context) -> None:
@@ -130,6 +126,11 @@ def setup(
     """
     _validate_log_level(log_level)
     logging.getLogger("behave_kit").setLevel(log_level.upper())
+    if context is None:
+        raise BehaveKitError(
+            "setup() requires a Behave context, got None",
+            suggestion="Call setup(context) from before_all in environment.py",
+        )
     if hasattr(context, _WIRED_KEY):
         return
 

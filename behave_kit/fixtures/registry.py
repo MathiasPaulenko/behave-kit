@@ -14,9 +14,10 @@ triggers the fixture named ``"database"``.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
-from behave_kit._core.registry import Registry
+from behave_kit._core.errors import FixtureError
+from behave_kit._core.registry import Registry, validate_registration
 from behave_kit._core.types import Context, Scope
 
 FixtureSetup = Callable[[Context], None]
@@ -32,6 +33,11 @@ def _normalize_requires(requires: str | list[str] | None) -> list[str]:
         return []
     if isinstance(requires, str):
         return [requires]
+    if not isinstance(requires, Iterable):
+        raise FixtureError(
+            f"requires must be a string or a list of strings, got {type(requires).__name__}",
+            suggestion="Pass a dependency name or a list of names",
+        )
     return list(requires)
 
 
@@ -48,9 +54,19 @@ def fixture(
         Accepts a single string or a list of strings.
     """
 
+    # Validate eagerly so bad arguments fail at decoration time,
+    # not when the inner decorator is applied.
+    validate_registration(name, scope)
+    normalized_requires = _normalize_requires(requires)
+
     def decorator(func: FixtureFactory) -> FixtureFactory:
         """Register ``func`` as the fixture named ``name``."""
-        _registry.register(name, func, scope=scope, requires=_normalize_requires(requires))
+        if not callable(func):
+            raise FixtureError(
+                f"@fixture('{name}') applied to non-callable {type(func).__name__}",
+                suggestion="Apply @fixture to a function",
+            )
+        _registry.register(name, func, scope=scope, requires=normalized_requires)
         return func
 
     return decorator

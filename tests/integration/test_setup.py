@@ -6,6 +6,8 @@ import logging
 from types import SimpleNamespace
 from unittest import mock
 
+import pytest
+
 from behave_kit.hooks import _WIRED_KEY, setup
 
 
@@ -169,6 +171,13 @@ def test_teardown_resets_continue_after_failed() -> None:
         assert Scenario.continue_after_failed_step is False
     finally:
         Scenario.continue_after_failed_step = original
+
+
+def test_setup_rejects_none_context() -> None:
+    from behave_kit._core.errors import BehaveKitError
+
+    with pytest.raises(BehaveKitError, match="requires a Behave context"):
+        setup(None)  # type: ignore[arg-type]
 
 
 def test_teardown_does_not_reset_continue_after_failed_if_not_wired() -> None:
