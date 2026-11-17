@@ -15,6 +15,9 @@ from typing import Any
 
 from behave_kit._core import compat
 from behave_kit._core.errors import DataLoadError
+from behave_kit._core.logging import get_logger
+
+logger = get_logger("data.loader")
 
 
 def _require_file(path: Path) -> None:
@@ -32,11 +35,32 @@ def _require_file(path: Path) -> None:
         ) from exc
 
 
+def _warn_duplicate_headers(headers: list[str], path: Path) -> None:
+    """Log a warning when a data file has repeated column names — later
+    columns silently overwrite earlier ones in row dicts."""
+    seen: set[str] = set()
+    duplicated: set[str] = set()
+    for header in headers:
+        if header in seen:
+            duplicated.add(header)
+        seen.add(header)
+    duplicates = sorted(duplicated)
+    if duplicates:
+        logger.warning(
+            "Duplicate column names in %s: %s — later columns overwrite earlier ones",
+            path,
+            ", ".join(duplicates),
+        )
+
+
 def _load_csv(path: Path) -> list[dict[str, Any]]:
     _require_file(path)
     try:
         with path.open(newline="", encoding="utf-8-sig") as f:
-            return list(csv.DictReader(f))
+            reader = csv.DictReader(f)
+            rows = list(reader)
+        _warn_duplicate_headers(list(reader.fieldnames or []), path)
+        return rows
     except csv.Error as exc:
         raise DataLoadError(
             f"Cannot parse CSV '{path}': {exc}",
@@ -163,6 +187,7 @@ def _load_xlsx(path: Path) -> list[dict[str, Any]]:
             headers = [str(header) for header in next(rows_iter)]
         except StopIteration:
             return []
+        _warn_duplicate_headers(headers, path)
         return [dict(zip(headers, row, strict=False)) for row in rows_iter]
     finally:
         workbook.close()
@@ -185,6 +210,11 @@ def load_data(path: str | Path) -> dict[str, Any] | list[Any]:
             or a required optional dependency (``pyyaml``, ``openpyxl``) is
             not installed.
     """
+    if not isinstance(path, (str, Path)):
+        raise DataLoadError(
+            f"Data path must be a string or Path, got {type(path).__name__}",
+            suggestion="Pass the path to a .csv, .json, .yaml/.yml or .xlsx file",
+        )
     file_path = Path(path)
     _require_file(file_path)
     loader = _LOADERS.get(file_path.suffix.lower())

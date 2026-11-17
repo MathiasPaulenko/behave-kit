@@ -91,8 +91,13 @@ def assert_list_ordered(
     msg: str = "",
 ) -> None:
     """Assert that ``lst`` is sorted, optionally by a ``key`` function."""
+    if key is not None and not callable(key):
+        raise AssertionError(f"key must be callable, got {type(key).__name__}")
     key_fn = key or (lambda item: item)
-    values = [key_fn(item) for item in lst]
+    try:
+        values = [key_fn(item) for item in lst]
+    except TypeError as exc:
+        raise AssertionError(f"List is not iterable: {lst!r}") from exc
     try:
         ordered = values == sorted(values)
     except TypeError as exc:
@@ -114,6 +119,12 @@ def _table_to_rows(table: _TableLike) -> list[dict[str, str]]:
 
 def assert_table_equals(actual: _TableLike, expected: _TableLike, *, msg: str = "") -> None:
     """Assert that two Behave Data Tables have the same headings and rows."""
+    for label, table in (("actual", actual), ("expected", expected)):
+        if getattr(table, "headings", None) is None or getattr(table, "rows", None) is None:
+            raise AssertionError(
+                f"assert_table_equals requires table-like objects with 'headings' "
+                f"and 'rows'; {label} is {type(table).__name__}"
+            )
     try:
         result = deep_compare(_table_to_rows(actual), _table_to_rows(expected))
     except (ValueError, TypeError) as exc:

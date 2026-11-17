@@ -79,3 +79,12 @@ def test_get_path_negative_list_index_raises() -> None:
 
 def test_get_path_negative_list_index_returns_default() -> None:
     assert get_path({"items": [1, 2, 3]}, "items.-1", default="x") == "x"
+
+
+def test_get_path_rejects_non_string_path() -> None:
+    with pytest.raises(BehaveKitError, match="non-empty string"):
+        get_path({"a": 1}, 42)  # type: ignore[arg-type]
+    with pytest.raises(BehaveKitError, match="non-empty string"):
+        get_path({"a": 1}, None)  # type: ignore[arg-type]
+    with pytest.raises(BehaveKitError, match="non-empty string"):
+        get_path({"a": 1}, ["a"])  # type: ignore[arg-type]

@@ -30,3 +30,17 @@ def test_data_provider_duplicate_name_raises() -> None:
 def test_get_provider_missing_raises() -> None:
     with pytest.raises(FixtureError):
         get_provider("does_not_exist_provider")
+
+
+def test_data_provider_rejects_invalid_name_eagerly() -> None:
+    """Bad names must fail at decoration time, like fixture/parameter_type."""
+    with pytest.raises(FixtureError, match="non-empty string"):
+        data_provider("")
+    with pytest.raises(FixtureError, match="non-empty string"):
+        data_provider(123)  # type: ignore[arg-type]
+
+
+def test_data_provider_rejects_non_callable() -> None:
+    decorator = data_provider("non_callable_provider")
+    with pytest.raises(FixtureError, match="non-callable"):
+        decorator(42)  # type: ignore[arg-type]

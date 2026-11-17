@@ -86,5 +86,33 @@ def test_assert_soft_raises_lets_keyboard_interrupt_propagate() -> None:
 def test_assert_soft_raises_rejects_empty_tuple() -> None:
     from behave_kit._core.errors import BehaveKitError
 
-    with pytest.raises(BehaveKitError, match="must not be empty"), soft_asserts() as sa:
+    with pytest.raises(BehaveKitError, match="must be an exception type"), soft_asserts() as sa:
         sa.assert_soft_raises((), lambda: None)
+
+
+def test_assert_soft_raises_rejects_non_exception_type() -> None:
+    from behave_kit._core.errors import BehaveKitError
+
+    with pytest.raises(BehaveKitError, match="must be an exception type"), soft_asserts() as sa:
+        sa.assert_soft_raises("ValueError", lambda: None)  # type: ignore[arg-type]
+
+
+def test_assert_soft_raises_rejects_tuple_with_non_exception() -> None:
+    from behave_kit._core.errors import BehaveKitError
+
+    with pytest.raises(BehaveKitError, match="must be an exception type"), soft_asserts() as sa:
+        sa.assert_soft_raises((ValueError, "oops"), lambda: None)  # type: ignore[arg-type]
+
+
+def test_assert_soft_raises_rejects_non_exception_class() -> None:
+    from behave_kit._core.errors import BehaveKitError
+
+    with pytest.raises(BehaveKitError, match="must be an exception type"), soft_asserts() as sa:
+        sa.assert_soft_raises(dict, lambda: None)  # type: ignore[arg-type]
+
+
+def test_assert_soft_raises_rejects_non_callable_func() -> None:
+    from behave_kit._core.errors import BehaveKitError
+
+    with pytest.raises(BehaveKitError, match="must be callable"), soft_asserts() as sa:
+        sa.assert_soft_raises(ValueError, "not-a-function")  # type: ignore[arg-type]

@@ -106,8 +106,26 @@ def test_load_examples_from_passes_through_list_of_dicts(tmp_path: Path) -> None
     assert load_examples_from(path) == [{"id": 1}, {"id": 2}]
 
 
+def test_load_csv_warns_on_duplicate_headers(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    import logging
+
+    path = tmp_path / "dup.csv"
+    path.write_text("name,age,name\nalice,30,alice2\n", encoding="utf-8")
+    with caplog.at_level(logging.WARNING, logger="behave_kit"):
+        rows = load_data(path)
+    assert "Duplicate column names" in caplog.text
+    assert rows == [{"name": "alice2", "age": "30"}]
+
+
 def test_load_data_accepts_path_object_and_string(tmp_path: Path) -> None:
     path = tmp_path / "config.json"
     path.write_text(json.dumps({"k": "v"}), encoding="utf-8")
     assert load_data(str(path)) == {"k": "v"}
     assert load_data(path) == {"k": "v"}
+
+
+def test_load_data_rejects_non_path() -> None:
+    with pytest.raises(DataLoadError, match="string or Path"):
+        load_data(42)  # type: ignore[arg-type]

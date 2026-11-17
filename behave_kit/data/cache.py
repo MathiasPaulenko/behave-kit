@@ -8,12 +8,22 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from behave_kit._core.errors import BehaveKitError
 from behave_kit._core.types import Scope
 
 
 def _normalize_path(path: str | Path) -> str:
     """Return a forward-slash, normalized key regardless of input type."""
     return Path(path).as_posix()
+
+
+def _check_scope(scope: Scope) -> None:
+    """Reject non-Scope values — e.g. data accidentally passed as the scope slot."""
+    if not isinstance(scope, Scope):
+        raise BehaveKitError(
+            f"scope must be a Scope value, got {scope!r}",
+            suggestion="Use Scope.SCENARIO, Scope.FEATURE, or Scope.GLOBAL",
+        )
 
 
 class DataCache:
@@ -29,9 +39,10 @@ class DataCache:
             path: File path or identifier used as the cache key.
             scope: Scope whose cached value should be returned.
         """
+        _check_scope(scope)
         return self._entries.get((_normalize_path(path), scope))
 
-    def set(self, path: str | Path, scope: Scope, data: object) -> None:
+    def set(self, path: str | Path, scope: Scope = Scope.SCENARIO, data: object = None) -> None:
         """Store ``data`` for ``path`` under ``scope``.
 
         Args:
@@ -39,9 +50,11 @@ class DataCache:
             scope: Scope at which the data should be cached.
             data: Value to cache.
         """
+        _check_scope(scope)
         self._entries[(_normalize_path(path), scope)] = data
 
     def invalidate(self, scope: Scope) -> None:
         """Remove every entry cached at ``scope``."""
+        _check_scope(scope)
         for key in [key for key in self._entries if key[1] == scope]:
             del self._entries[key]

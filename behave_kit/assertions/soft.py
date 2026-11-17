@@ -86,8 +86,14 @@ class SoftAssertCollector:
         expected_name = _exception_name(expected_exception)
         if not expected_name:
             raise BehaveKitError(
-                "expected_exception must not be empty",
-                suggestion="Provide at least one exception type",
+                "expected_exception must be an exception type or a non-empty "
+                f"tuple of exception types, got {expected_exception!r}",
+                suggestion="Provide an exception class, e.g. ValueError",
+            )
+        if not callable(func):
+            raise BehaveKitError(
+                f"func must be callable, got {type(func).__name__}",
+                suggestion="Pass a zero-argument callable, e.g. lambda: do_thing()",
             )
         try:
             func()
@@ -132,10 +138,19 @@ class SoftAssertCollector:
 def _exception_name(
     exc: type[BaseException] | tuple[type[BaseException], ...],
 ) -> str:
-    """Return a readable name for an exception type or tuple of types."""
+    """Return a readable name for an exception type or tuple of types.
+
+    Returns an empty string when ``exc`` is not a valid exception spec.
+    """
     if isinstance(exc, tuple):
+        if not exc:
+            return ""
+        if not all(isinstance(e, type) and issubclass(e, BaseException) for e in exc):
+            return ""
         return " or ".join(e.__name__ for e in exc)
-    return exc.__name__
+    if isinstance(exc, type) and issubclass(exc, BaseException):
+        return exc.__name__
+    return ""
 
 
 _collector_var: contextvars.ContextVar[SoftAssertCollector | None] = contextvars.ContextVar(

@@ -33,9 +33,9 @@ def get_path(data: object, path: str, default: Any = _MISSING) -> Any:
     Raises:
         BehaveKitError: When the path is not found and no ``default`` is given.
     """
-    if not path:
+    if not isinstance(path, str) or not path:
         raise BehaveKitError(
-            "path must not be empty",
+            f"path must be a non-empty string, got {path!r}",
             suggestion='Use a dot-separated path like "user.address.city"',
         )
 

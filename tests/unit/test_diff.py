@@ -97,3 +97,21 @@ def test_assert_list_ordered_empty_list_passes() -> None:
 def test_assert_dict_contains_with_custom_message_prepended() -> None:
     with pytest.raises(AssertionError, match="my prefix"):
         assert_dict_contains({"a": 1}, {"a": 2}, msg="my prefix")
+
+
+def test_assert_table_equals_rejects_non_table_inputs() -> None:
+    table = SimpleNamespace(headings=["a"], rows=[["1"]])
+    with pytest.raises(AssertionError, match="table-like"):
+        assert_table_equals(None, table)  # type: ignore[arg-type]
+    with pytest.raises(AssertionError, match="table-like"):
+        assert_table_equals(table, {"headings": [], "rows": []})  # type: ignore[arg-type]
+
+
+def test_assert_list_ordered_rejects_non_callable_key() -> None:
+    with pytest.raises(AssertionError, match="key must be callable"):
+        assert_list_ordered([1, 2], key="name")  # type: ignore[arg-type]
+
+
+def test_assert_list_ordered_rejects_non_iterable() -> None:
+    with pytest.raises(AssertionError, match="not iterable"):
+        assert_list_ordered(42)  # type: ignore[arg-type]
