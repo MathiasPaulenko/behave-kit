@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2026-11-17
+
+### Fixed
+
+- `wait_until` no longer hangs forever on `nan`/`inf` timeouts and sleeps at
+  most the time left before the deadline instead of overrunning it. Timing
+  helpers (`assert_under`, `timed`) reject `NaN`, infinity, booleans and
+  non-numeric values.
+- `KitConfig` validates that `behave_kit`, `timeouts` and `credentials`
+  sections are mappings, rejects booleans and non-integral floats as
+  timeout values, and deep-freezes `raw` data (nested mappings become
+  `MappingProxyType`, lists become tuples).
+- `FixtureManager` registers the fixture teardown before running setup, so
+  a mid-setup failure no longer leaks the resource; teardown lists are
+  always cleared and cross-scope dependency skips now log a warning.
+- `setup_timeout` raises `TimeoutSetupError` (a `BehaveKitError` that is
+  also a `ValueError` for backwards compatibility), selects the
+  thread-timer handler off the main thread, and disarms stale handlers
+  before starting a new scenario.
+- Decorator factories (`@fixture`, `@data_provider`, `@parameter_type`,
+  `@scoped`, `@when_if`, `@skip_*`, `@data_driven`) now validate their
+  arguments eagerly — invalid names, scopes, patterns and non-callable
+  targets fail at decoration time with actionable errors.
+- `data_driven` detects columns whose sanitized names collide instead of
+  silently dropping values; CSV/XLSX loaders warn on duplicate headers.
+- `env()` rejects empty/non-string keys, reports `var_type` names without
+  relying on `__name__`, and uses standard dotenv file discovery.
+- `dump_context` escapes Windows reserved device names, caps filename
+  length, and wraps write failures in `BehaveKitError`.
+- `TypedContext` requires a class schema, caches resolved type hints, and
+  merges inherited annotations through the MRO.
+- `DataCache` validates the `Scope` enum, `assert_soft_raises` validates
+  exception specs, `assert_table_equals`/`assert_list_ordered` validate
+  their inputs, and `get_path` requires a non-empty string path.
+
 ## [1.6.0] - 2026-10-02
 
 ### Added
