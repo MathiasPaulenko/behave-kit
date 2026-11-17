@@ -292,7 +292,19 @@ def step_impl_base(default_matcher: Any = None) -> type:
             resolved = matcher if matcher is not None else default_matcher_class
 
             def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
-                local_registry.append(_StepEntry(keyword, pattern, func.__name__, resolved))
+                # A property resolves to a computed value, never to a callable
+                # step method — reject it. Anything else without __name__
+                # cannot be resolved via getattr() at register() time either.
+                # classmethod/staticmethod descriptors do resolve to
+                # callables, so they are allowed through.
+                func_name = getattr(func, "__name__", None)
+                if isinstance(func, property) or not isinstance(func_name, str):
+                    raise StepError(
+                        f"@{keyword} decorator applied to {type(func).__name__}, "
+                        "which is not a step method",
+                        suggestion="Decorate a method defined with 'def'",
+                    )
+                local_registry.append(_StepEntry(keyword, pattern, func_name, resolved))
                 return func
 
             return wrapper

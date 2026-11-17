@@ -935,16 +935,31 @@ def test_no_teardown_hook_means_no_teardown_call() -> None:
 
 
 def test_step_attribute_that_is_not_callable_raises() -> None:
-    """A step entry pointing at a non-method attribute (e.g. a property used
-    as a step) must raise StepError at register() time, not AttributeError."""
+    """Decorating a property must raise StepError at decoration time, not a
+    raw AttributeError — on Python <3.13 property objects have no
+    ``__name__``, so the failure must not depend on it."""
+    Base = step_impl_base()
+
+    with pytest.raises(StepError, match="not a step method"):
+
+        class Steps(Base):
+            @Base.given("a step implemented as a property")
+            @property
+            def prop_step(self) -> int:
+                return 42
+
+
+def test_step_method_replaced_by_non_callable_raises_at_register() -> None:
+    """If the step attribute is replaced by a non-callable between decoration
+    and register(), register() still fails with StepError."""
     Base = step_impl_base()
 
     class Steps(Base):
-        @Base.given("a step implemented as a property")
-        @property
-        def prop_step(self) -> int:
-            return 42
+        @Base.given("a step that becomes an attribute")
+        def real_step(self) -> None:
+            pass
 
+    Steps.real_step = 42  # type: ignore[assignment]
     with pytest.raises(StepError, match="not callable"):
         Steps.register()
 

@@ -9,7 +9,7 @@ Three adoption levels:
 
 from __future__ import annotations
 
-__version__ = "1.6.1"
+__version__ = "1.6.2"
 
 from behave_kit._core.types import Scope
 from behave_kit.assertions import (

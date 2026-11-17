@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.2] - 2026-11-17
+
+### Fixed
+
+- `step_impl_base` step decorators no longer crash with a raw
+  `AttributeError` on Python ≤3.12 when applied to a `property` (or any
+  object without `__name__`) — they now raise `StepError` at decoration
+  time. `classmethod`/`staticmethod` descriptors remain supported.
+
 ## [1.6.1] - 2026-11-17
 
 ### Fixed
